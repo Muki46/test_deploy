@@ -419,7 +419,6 @@ function Roles() {
                 <IconButton
                   onClick={() => {
                     handleDelete(roleList[dataIndex].RoleId);
-                    handleDelete(roleList[dataIndex].RoleId);
                   }}
                   sx={{
                     '&:hover': {

@@ -507,7 +507,6 @@ function AddReportConfiguration() {
             );
           })}
         </Grid>
-
         <Grid container>
           <Button
             type="button"

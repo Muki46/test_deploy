@@ -773,10 +773,10 @@ function Reports() {
                         )}
                       />
                     </Grid>
-                    <Grid item xs={3}>
+                    <Grid item xs={4}>
                       <FormControl
                         variant="filled"
-                        sx={{ marginTop: '8px', width: '40ch' }}
+                        sx={{ marginTop: '8px', width: '54ch', marginLeft:'1ch'}}
                       >
                         <InputLabel id="demo-simple-select-filled-label">
                           Category
@@ -785,13 +785,13 @@ function Reports() {
                           name="category"
                           control={control}
                           defaultValue=""
-                          render={({ field: { onChange } }) => (
+                          render={({ field: { onChange,value } }) => (
                             <Select
                               required
                               labelId="demo-simple-select-filled"
                               {...register('category')}
                               id="demo-simple-select"
-                              value={categoryId}
+                              value={value}
                               disabled={!categoryData?.length}
                               label="Category"
                               onChange={(e) => {

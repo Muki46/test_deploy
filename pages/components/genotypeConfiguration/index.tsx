@@ -1,35 +1,33 @@
-import { useState, useEffect, forwardRef } from 'react';
-import Head from 'next/head';
 import SidebarLayout from '@/layouts/SidebarLayout';
-import {
-  Button,
-  Container,
-  Typography,
-  useTheme,
-  Tooltip,
-  IconButton,
-  Grid
-} from '@mui/material';
-import Modal from '@mui/material/Modal';
-import Box from '@mui/material/Box';
 import Footer from '@/components/Footer';
-import MUIDataTable from 'mui-datatables';
+import Head from 'next/head';
 import AddIcon from '@mui/icons-material/Add';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import AddClient from './AddClient';
-import { useAxios } from 'pages/services';
-import { DNA } from 'react-loader-spinner';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
-import moment from 'moment';
 import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
-import Slide from '@mui/material/Slide';
 import { TransitionProps } from '@mui/material/transitions';
-import Alert from '@mui/material/Alert';
-import CloseIcon from '@mui/icons-material/Close';
+import { DNA } from 'react-loader-spinner';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import Box from '@mui/material/Box';
+import {
+  Container,
+  Grid,
+  Slide,
+  Typography,
+  IconButton,
+  Button,
+  Tooltip,
+  useTheme
+} from '@mui/material';
+import Router from 'next/router';
+import { forwardRef, useEffect, useState } from 'react';
+import { useAxios } from 'pages/services';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
 import { useConfirm } from 'material-ui-confirm';
+import MUIDataTable from 'mui-datatables';
+import moment from 'moment';
 
 const Transition = forwardRef(function Transition(
   props: TransitionProps & {
@@ -39,13 +37,14 @@ const Transition = forwardRef(function Transition(
 ) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
+
 const getMuiTheme = () =>
   createTheme({
     components: {
       MuiTableCell: {
         styleOverrides: {
           root: {
-            padding: '4px',
+            padding: '10px 13px',
             backgroundColor: '#fff',
             fontFamily:
               '"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji"'
@@ -179,140 +178,121 @@ const getMuiTheme = () =>
     }
   });
 
-const style = {
-  position: 'absolute' as 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: '80%',
-  bgcolor: 'background.paper',
-  boxShadow: 24,
-  p: 4
-};
 
-function Clients() {
+
+function GenotypeConfiguration() {
+  const [axios] = useAxios();
   const confirm = useConfirm();
   const theme = useTheme();
-  const [loading, setLoading] = useState(false);
-  const [axios] = useAxios();
-  const [clientData, setClientData] = useState([]);
   const [snackopen, setSnackOpen] = useState(false);
-  const [severity, setSeverity] = useState('info');
   const [message, setMessage] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
   const [dopen, setDialogOpen] = useState(false);
-  const [roleName, setRoleName] = useState('');
-  const [rowSelectable, setRowSelectable] = useState('multiple');
-  const [leftDataSpace, setLeftDataSpace] = useState('3.7%');
-  const [leftHeaderSpace, setLeftHeaderSpace] = useState('4.2%');
+  const [conditionGeneSnpResultData, setConditionconditionGeneSnpResultData] = useState([]);
 
 
   useEffect(() => {
-    setLoading(true);
-    setDialogOpen(true);
-    getClientData();
+    getConditionGenotypeSnpList();
   }, []);
 
-  async function getClientData() {
-    const clientid = localStorage.getItem('ClientId');
-    const rName = localStorage.getItem('RoleName');
+  async function getConditionGenotypeSnpList() {
+    setIsUpdating(true);
+    setDialogOpen(true);
     await axios
-      .get(`Clients/GetClientList/${clientid}`)
+      .get(`Category/GetConditionGenotypeSnpList`)
       .then((res) => {
         if (res.data.StatusCode == 200) {
-          if (rName == 'Client User') {
-            setRoleName(rName);
-            setRowSelectable('none');
-            setLeftHeaderSpace('0%');
-            setLeftDataSpace('0%');
-          }
-          console.log(res.data.Data);
-          setLoading(false);
-          setClientData(res.data.Data);
+          setConditionconditionGeneSnpResultData(res.data.Data);
           setDialogOpen(false);
-          setSeverity('success');
+          setIsUpdating(false);
         } else {
           setMessage(res.data.StatusMessage);
-          setLoading(false);
-          setDialogOpen(false);
           setSnackOpen(true);
-          setSeverity('error');
+          setIsUpdating(false);
+          setDialogOpen(false);
         }
       })
       .catch((err) => {
-        console.log(err);
-        setLoading(false);
-        setMessage('Failed to Get client List');
+        setIsUpdating(false);
         setDialogOpen(false);
+        console.log(err);
         setSnackOpen(true);
-        setSeverity('error');
+        setMessage('Failed to Fetch the data');
       });
   }
 
-  const goBack = () => {
-    setSnackOpen(false);
-  };
-
   const handleDelete = (item) => {
     confirm({
-      description: `Once deleted, you will not be able to recover this client.`
+      description: `Once deleted, you will not be able to recover this Configuration.`
     })
-      .then(() => deleteClient(item))
+      .then(() => deleteConditionGenotypeSnp(item))
       .catch(() => console.log('Deletion cancelled.'));
   };
 
-  async function deleteClient(clientId) {
-    setLoading(true);
+  async function deleteConditionGenotypeSnp(
+    CategoryGeneSnpResultMappingId
+  ) {
+    setIsUpdating(true);
     setDialogOpen(true);
     const postData = [
       {
-        Id: clientId,
+        Id: CategoryGeneSnpResultMappingId,
         ModifiedBy: localStorage.getItem('UserId'),
         ModifiedDate: moment(new Date()).format('MM-DD-YYYY')
       }
     ];
 
     axios
-      .delete('Clients/DeleteClient', { data: postData })
+      .delete('Category/DeleteConditionGenotypeSnp', { data: postData })
       .then((res) => {
         if (res.data.StatusCode == 200) {
-          setMessage('Client Deleted');
+          setDialogOpen(false);
+          setMessage('Configuration Deleted');
           setSnackOpen(true);
-          setSeverity('success');
-          window.location.reload();
+          setIsUpdating(false);
+          setTimeout(goBack, 1000);
         } else {
-          setLoading(false);
+          setIsUpdating(false);
           setDialogOpen(false);
           setMessage(res.data.StatusMessage);
-          setTimeout(goBack, 2000);
-          setSeverity('error');
           setSnackOpen(true);
         }
       })
       .catch((err) => {
         console.log(err);
-        console.log(severity);
+        setIsUpdating(false);
         setDialogOpen(false);
-        setMessage('Failed To Delete Client');
+        setMessage('Failed To Delete Configuration');
         setSnackOpen(true);
-        setSeverity('error');
-        window.location.reload();
+        setTimeout(goBack, 2000);
       });
   }
 
+  const handleclick  = (id) => {
+    console.log(id);
+    Router.push({
+      pathname: 'genotypeConfiguration/AddGenotypeConfiguration',
+      query: { props: id > 0 ? id : 0 }
+    });
+  };
+
+ 
+
   const columns = [
     {
-      name: 'ClientName',
-      label: 'Client Name',
+      name: 'ReportName',
+      label: 'Report Name',
       options: {
         filter: true,
         sort: true,
         setCellProps: () => ({
           style: {
-            minWidth: '150px',
-            maxWidth: '150px',
+            minWidth: '180px',
+            maxWidth: '180px',
             whiteSpace: 'nowrap',
+            wordWrap: 'break-word',
             position: 'sticky',
-            left: leftDataSpace,
+            left: '4.5%',
             background: 'white',
             zIndex: 100
           }
@@ -320,7 +300,8 @@ function Clients() {
         setCellHeaderProps: () => ({
           style: {
             position: 'sticky',
-            left: leftHeaderSpace,
+            left: '4.5%',
+            background: 'white',
             top: 0, //Incase Header is Fixed
             zIndex: 102
           }
@@ -328,8 +309,8 @@ function Clients() {
       }
     },
     {
-      name: 'Address',
-      label: 'Address',
+      name: 'CategoryName',
+      label: 'Category Name',
       options: {
         filter: true,
         sort: true,
@@ -337,99 +318,15 @@ function Clients() {
           return value === null || value === '' ? 'NA' : value;
         },
         setCellProps: () => ({
-          style: { minWidth: '150px', maxWidth: '150px' }
+          style: { minWidth: '250px', maxWidth: '250px' }
         })
       }
     },
     {
-      name: 'City',
-      label: 'City',
+      name: 'SubCategoryName',
+      label: 'Sub Category Name',
       options: {
         filter: true,
-        sort: true,
-        customBodyRender: (value) => {
-          return value === null || value === '' ? 'NA' : value;
-        },
-        setCellProps: () => ({
-          style: { minWidth: '150px', maxWidth: '150px' }
-        })
-      }
-    },
-    {
-      name: 'State',
-      label: 'State',
-      options: {
-        filter: false,
-        sort: true,
-        customBodyRender: (value) => {
-          return value === null || value === '' ? 'NA' : value;
-        },
-        setCellProps: () => ({
-          style: { minWidth: '150px', maxWidth: '150px' }
-        })
-      }
-    },
-    {
-      name: 'Zip',
-      label: 'Zip',
-      options: {
-        filter: true,
-        sort: true,
-        customBodyRender: (value) => {
-          return value === null || value === '' ? 'NA' : value;
-        },
-        setCellProps: () => ({
-          style: { minWidth: '150px', maxWidth: '150px' }
-        })
-      }
-    },
-    {
-      name: 'Phone',
-      label: 'Phone',
-      options: {
-        filter: true,
-        sort: true,
-        customBodyRender: (value) => {
-          return value === null || value === '' ? 'NA' : value;
-        },
-        setCellProps: () => ({
-          style: { minWidth: '180px', maxWidth: '180px' }
-        })
-      }
-    },
-    {
-      name: 'Domains',
-      label: 'Domain Name ',
-      options: {
-        filter: true,
-        sort: true,
-        customBodyRender: (value) => {
-          return value === (null || '') ? 'NA' : value;
-        },
-        setCellProps: () => ({
-          style: { minWidth: '200px', maxWidth: '200px', position: 'sticky' ,wordWrap: 'break-word' }
-        })
-      }
-    },
-    {
-      name: 'Fax',
-      label: 'Fax',
-      options: {
-        filter: true,
-        sort: true,
-        customBodyRender: (value) => {
-          return value === null || value === '' ? 'NA' : value;
-        },
-        setCellProps: () => ({
-          style: { minWidth: '150px', maxWidth: '150px' }
-        })
-      }
-    },
-    {
-      name: 'ContactPersonName',
-      label: 'Contact Person Name',
-      options: {
-        filter: false,
         sort: true,
         customBodyRender: (value) => {
           return value === null || value === '' ? 'NA' : value;
@@ -440,10 +337,10 @@ function Clients() {
       }
     },
     {
-      name: 'TimeZone',
-      label: 'TimeZone',
+      name: 'Gene',
+      label: 'Gene',
       options: {
-        filter: false,
+        filter: true,
         sort: true,
         customBodyRender: (value) => {
           return value === null || value === '' ? 'NA' : value;
@@ -454,11 +351,92 @@ function Clients() {
       }
     },
     {
+      name: 'Snp',
+      label: 'SNP',
+      options: {
+        filter: true,
+        sort: true,
+        setCellProps: () => ({
+          style: { minWidth: '150px', maxWidth: '150px' }
+        })
+      }
+    },
+
+    {
+      name: 'GenoType',
+      label: 'Geno Type',
+      options: {
+        filter: true,
+        sort: true,
+        setCellProps: () => ({
+          style: { minWidth: '200px', maxWidth: '200px' }
+        })
+      }
+    },
+    {
+      name: 'ConditionName',
+      label: 'Condition Name',
+      options: {
+        filter: false,
+        sort: true,
+        setCellProps: () => ({
+          style: {
+            minWidth: '200px',
+            maxWidth: '200px',
+            textOverflow: 'ellipsis'
+          }
+        })
+      }
+    },
+    {
+      name: 'GraphStateName',
+      label: 'Graph State Name',
+      options: {
+        filter: false,
+        sort: true,
+        setCellProps: () => ({
+          style: {
+            minWidth: '250px',
+            maxWidth: '250px',
+            textOverflow: 'ellipsis'
+          }
+        })
+      }
+    },
+    {
+      name: 'ColorName',
+      label: 'Color Name',
+      options: {
+        filter: false,
+        sort: true,
+        customBodyRender: (value) => {
+          return value === null || value === ''
+            ? 'NA'
+            : value.length <= 25
+            ? value
+            : value.substr(0, 25) + '...';
+        },
+        setCellProps: () => ({
+          style: { minWidth: '200px', maxWidth: '200px' }
+        })
+      }
+    },
+    {
+      name: 'Status',
+      label: 'Status',
+      options: {
+        filter: true,
+        sort: true,
+        customBodyRender: (value) => {
+          return value === 1 ? 'Active' : 'Inactive';
+        }
+      }
+    },
+    {
       name: 'Action',
       options: {
         filter: false,
         download: false,
-
         setCellProps: () => ({
           style: {
             minWidth: '80px',
@@ -484,8 +462,10 @@ function Clients() {
               <Tooltip placement="top" title="View" arrow>
                 <IconButton
                   onClick={() => {
-                    setId(clientData[dataIndex].ClientId);
-                    setOpen(true);
+                    handleclick(
+                      conditionGeneSnpResultData[dataIndex]
+                        .SubCategoryConditionMappingId
+                    );
                   }}
                   sx={{
                     '&:hover': {
@@ -499,27 +479,26 @@ function Clients() {
                   <VisibilityIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-              {roleName == 'Client User' ? (
-                ''
-              ) : (
-                <Tooltip placement="top" title="Delete" arrow>
-                  <IconButton
-                    onClick={() => {
-                      handleDelete(clientData[dataIndex].ClientId);
-                    }}
-                    sx={{
-                      '&:hover': {
-                        background: theme.colors.error.lighter
-                      },
-                      color: theme.palette.error.main
-                    }}
-                    color="inherit"
-                    size="small"
-                  >
-                    <DeleteTwoToneIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              )}
+              <Tooltip placement="top" title="Delete" arrow>
+                <IconButton
+                  onClick={() => {
+                    handleDelete(
+                      conditionGeneSnpResultData[dataIndex]
+                        .SubCategoryConditionMappingId
+                    );
+                  }}
+                  sx={{
+                    '&:hover': {
+                      background: theme.colors.error.lighter
+                    },
+                    color: theme.palette.error.main
+                  }}
+                  color="inherit"
+                  size="small"
+                >
+                  <DeleteTwoToneIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             </>
           );
         }
@@ -529,25 +508,61 @@ function Clients() {
 
   const options = {
     responsive: 'scroll',
-    selectableRows: rowSelectable,
     onRowsDelete: (rowsDeleted) => {
       confirm({
-        description: `Once deleted, you will not be able to recover this Clients.`
+        description: `Once deleted, you will not be able to recover this Condition Configuration.`
       })
         .then(() => {
           const idsToDelete = rowsDeleted.data.map(
-            (d) => clientData[d.dataIndex].ClientId
+            (d) => conditionGeneSnpResultData[d.dataIndex].SubCategoryConditionMappingId
           );
-          bulkDeleteClients(idsToDelete);
+          bulkDeleteConditionGenotypeSnp(idsToDelete);
         })
         .catch(() => window.location.reload());
     },
     print: false,
-    downloadOptions: { filename: 'clients.csv', separator: ',' }
+    onDownload: () => {
+      GetConditionGenotypeSnpListFile();
+      //prevents default download behavior
+      return false;
+    }
   };
 
-  async function bulkDeleteClients(item) {
-    setLoading(true);
+  async function GetConditionGenotypeSnpListFile() {
+    setIsUpdating(true);
+    setDialogOpen(true);
+    await axios
+      .get(`Category/GetConditionGenotypeSnpListFile`, {
+        responseType: 'blob'
+      })
+      .then((res) => {
+        let a = document.createElement('a');
+        a.href = URL.createObjectURL(res.data);
+        a.download = 'SnpConditionList.csv';
+        a.click();
+        a.remove();
+        console.log(res);
+        setIsUpdating(false);
+        setDialogOpen(false);
+      })
+      .catch((err) => {
+        setIsUpdating(true);
+        setDialogOpen(false);
+        console.log(err);
+        setSnackOpen(true);
+        setMessage('Failed to download Gene List');
+      });
+  }
+
+  const goBack = () => {
+    Router.push({
+      pathname: '/components/genotypeConfiguration'
+    });
+    getConditionGenotypeSnpList();
+  };
+
+  async function bulkDeleteConditionGenotypeSnp(item) {
+    setIsUpdating(true);
     setDialogOpen(true);
     var deleteArray = [];
     for (let i = 0; i < item.length; i++) {
@@ -559,56 +574,59 @@ function Clients() {
       deleteArray.push(postData);
     }
     axios
-      .delete('Clients/DeleteClient', { data: deleteArray })
+      .delete('Category/DeleteConditionGenotypeSnp', {
+        data: deleteArray
+      })
       .then((res) => {
         console.log(res);
         if (res.data.StatusCode == 200) {
           setDialogOpen(false);
-          setMessage('Selected Clients Deleted Successfully');
+          setIsUpdating(false);
+          setMessage('Selected Condition Configuration Deleted Successfully');
           setSnackOpen(true);
-          setSeverity('success');
-          window.location.reload();
+          setTimeout(goBack, 1000);
         } else {
-          setLoading(false);
+          setIsUpdating(false);
           setDialogOpen(false);
           setMessage(res.data.StatusMessage);
-          setTimeout(goBack, 2000);
-          setSeverity('error');
           setSnackOpen(true);
         }
       })
       .catch((err) => {
         console.log(err);
         setDialogOpen(false);
-        setMessage('Failed To Delete Clients');
+        setMessage('Failed To Delete Configuration');
         setSnackOpen(true);
-        setSeverity('error');
-        setLoading(false);
-        window.location.reload();
+        setIsUpdating(false);
+        setTimeout(goBack, 1000);
       });
   }
 
-  const [open, setOpen] = useState(false);
-  const [id, setId] = useState(0);
-  const handleOpen = () => {
-    setId(0);
-    setOpen(true);
+  
+
+
+  
+
+  const handleClose = (reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackOpen(false);
   };
 
-  const handleClose = (event, reason) => {
-    console.log(event);
-    if (reason && reason == 'backdropClick' && 'escapeKeyDown') return;
-    myCloseModal();
+  const gotoGenotypeConfiguration = () => {
+    setDialogOpen(true);
+    setMessage('loading');
+    setIsUpdating(true);
+    Router.push({
+      pathname: 'genotypeConfiguration/AddGenotypeConfiguration'
+    });
   };
-
-  function myCloseModal() {
-    setOpen(false);
-  }
 
   return (
     <>
       <Head>
-        <title>clients</title>
+        <title>Condition Configuration</title>
       </Head>
       <Container maxWidth="xl">
         <Grid
@@ -619,7 +637,7 @@ function Clients() {
           spacing={3}
           style={{ marginTop: '10px' }}
         >
-          <Grid item xs={10}>
+          <Grid item xs={9}>
             <Typography
               variant="h3"
               component="h3"
@@ -629,68 +647,23 @@ function Clients() {
                 textTransform: 'uppercase'
               }}
             >
-              clients
+              Condition Configuration
             </Typography>
           </Grid>
-          <Grid item xs={2}>
-            {roleName == 'Client User' ? (
-              ''
-            ) : (
-              <Button
-                variant="contained"
-                size="large"
-                style={{
-                  marginLeft: 13,
-                  float: 'right',
-                  background: '#9DA338 !important'
-                }}
-                startIcon={<AddIcon />}
-                onClick={handleOpen}
-              >
-                Add Client
-              </Button>
-            )}
-            <Modal
-              open={open}
-              onClose={handleClose}
-              aria-labelledby="modal-modal-title"
-              aria-describedby="modal-modal-description"
+          <Grid item xs={3}>
+            <Button
+              variant="contained"
+              size="large"
+              style={{
+                marginLeft: 13,
+                float: 'right',
+                background: '#9DA338 !important'
+              }}
+              startIcon={<AddIcon />}
+              onClick={gotoGenotypeConfiguration}
             >
-              <Box sx={style}>
-                <h3
-                  id="unstyled-modal-title"
-                  className="modal-title"
-                  style={{
-                    position: 'absolute',
-                    left: 20,
-                    top: 10,
-                    color: '#223354'
-                  }}
-                >
-                  Add Client
-                </h3>
-                <IconButton
-                  onClick={() => {
-                    getClientData();
-                    setOpen(false);
-                  }}
-                  sx={{
-                    position: 'absolute',
-                    right: 2,
-                    top: 1,
-                    color: 'black',
-                    fontSize: 34
-                  }}
-                  color="inherit"
-                  size="large"
-                >
-                  <CloseIcon color="error" />
-                </IconButton>
-                <div style={{ marginTop: '30px' }}>
-                  <AddClient props={id} />
-                </div>
-              </Box>
-            </Modal>
+              Add Condition Configuration
+            </Button>
           </Grid>
           <Grid item xs={12}>
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
@@ -704,7 +677,7 @@ function Clients() {
                 </Alert>
               </Snackbar>
             </Box>
-            {loading ? (
+            {isUpdating ? (
               <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                 <Dialog
                   open={dopen}
@@ -727,7 +700,7 @@ function Clients() {
             ) : (
               <ThemeProvider theme={getMuiTheme()}>
                 <MUIDataTable
-                  data={clientData}
+                  data={conditionGeneSnpResultData}
                   columns={columns}
                   options={options}
                 />
@@ -740,7 +713,5 @@ function Clients() {
     </>
   );
 }
-
-Clients.getLayout = (page) => <SidebarLayout>{page}</SidebarLayout>;
-
-export default Clients;
+GenotypeConfiguration.getLayout = (page) => <SidebarLayout>{page}</SidebarLayout>;
+export default GenotypeConfiguration;

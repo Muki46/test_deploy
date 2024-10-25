@@ -315,15 +315,13 @@ function RecycleBin() {
             position: 'sticky',
             left: '0%',
             background: 'white',
-            top: 0, //Incase Header is Fixed
-            zIndex: 102
+            zIndex: 100
           }
         }),
         setCellHeaderProps: () => ({
           style: {
             position: 'sticky',
             left: '0%',
-            background: 'white',
             top: 0, //Incase Header is Fixed
             zIndex: 102
           }

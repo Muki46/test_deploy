@@ -8,7 +8,6 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
-import { useMsal } from '@azure/msal-react';
 import Header from './Header';
 
 interface SidebarLayoutProps {
@@ -17,7 +16,6 @@ interface SidebarLayoutProps {
 
 const SidebarLayout: FC<SidebarLayoutProps> = ({ children }) => {
   const theme = useTheme();
-  const msal = useMsal();
   const [open, setOpen] = useState(false);
   const [isidle, setIsIdle] = useState(false);
   const [intervalId, setIntervalId] = useState(null);
@@ -28,19 +26,13 @@ const SidebarLayout: FC<SidebarLayoutProps> = ({ children }) => {
   };
 
   const handleOut = async () => {
-    await msal.instance.logoutPopup({ mainWindowRedirectUri: '/' });
+    localStorage.clear();
+    window.location.replace('/');
   };
 
   const logoff = async () => {
-    const account = await msal.instance.getActiveAccount();
-    const currentAccount = await msal.instance.getAccountByHomeId(
-      account.homeAccountId
-    );
-    const logoutHint = currentAccount.idTokenClaims.login_hint;
-    await msal.instance.logoutPopup({
-      logoutHint: logoutHint,
-      mainWindowRedirectUri: '/'
-    });
+    localStorage.clear();
+    window.location.replace('/');
   };
 
   return (

@@ -1,35 +1,36 @@
-import { useState, useEffect, forwardRef } from 'react';
+import React, { useEffect, useState, forwardRef } from 'react';
 import Head from 'next/head';
 import SidebarLayout from '@/layouts/SidebarLayout';
 import {
   Button,
   Container,
   Typography,
-  useTheme,
-  Tooltip,
   IconButton,
+  Tooltip,
+  useTheme,
   Grid
 } from '@mui/material';
-import Modal from '@mui/material/Modal';
-import Box from '@mui/material/Box';
 import Footer from '@/components/Footer';
 import MUIDataTable from 'mui-datatables';
+import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
-import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import AddClient from './AddClient';
+import Modal from '@mui/material/Modal';
+import Box from '@mui/material/Box';
 import { useAxios } from 'pages/services';
 import { DNA } from 'react-loader-spinner';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import moment from 'moment';
 import Snackbar from '@mui/material/Snackbar';
+import AddDomain from './AddDomain';
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
 import Slide from '@mui/material/Slide';
 import { TransitionProps } from '@mui/material/transitions';
 import Alert from '@mui/material/Alert';
-import CloseIcon from '@mui/icons-material/Close';
 import { useConfirm } from 'material-ui-confirm';
+
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import moment from 'moment';
 
 const Transition = forwardRef(function Transition(
   props: TransitionProps & {
@@ -39,6 +40,7 @@ const Transition = forwardRef(function Transition(
 ) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
+
 const getMuiTheme = () =>
   createTheme({
     components: {
@@ -179,103 +181,86 @@ const getMuiTheme = () =>
     }
   });
 
-const style = {
-  position: 'absolute' as 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: '80%',
-  bgcolor: 'background.paper',
-  boxShadow: 24,
-  p: 4
-};
-
-function Clients() {
+function Domain() {
   const confirm = useConfirm();
-  const theme = useTheme();
   const [loading, setLoading] = useState(false);
+  const [dopen, setDialogOpen] = useState(false);
   const [axios] = useAxios();
-  const [clientData, setClientData] = useState([]);
+  const theme = useTheme();
+  const style = {
+    position: 'absolute' as 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: '80%',
+    bgcolor: 'background.paper',
+    boxShadow: 24,
+    p: 4
+  };
+
   const [snackopen, setSnackOpen] = useState(false);
   const [severity, setSeverity] = useState('info');
   const [message, setMessage] = useState('');
-  const [dopen, setDialogOpen] = useState(false);
-  const [roleName, setRoleName] = useState('');
-  const [rowSelectable, setRowSelectable] = useState('multiple');
-  const [leftDataSpace, setLeftDataSpace] = useState('3.7%');
-  const [leftHeaderSpace, setLeftHeaderSpace] = useState('4.2%');
-
+  const [domainData, setDomainData] = useState([]);
 
   useEffect(() => {
+    console.log(severity);
     setLoading(true);
     setDialogOpen(true);
-    getClientData();
+    getDomainList();
   }, []);
 
-  async function getClientData() {
-    const clientid = localStorage.getItem('ClientId');
-    const rName = localStorage.getItem('RoleName');
+  async function getDomainList() {
     await axios
-      .get(`Clients/GetClientList/${clientid}`)
+      .get(`Users/GetDomainList`)
       .then((res) => {
         if (res.data.StatusCode == 200) {
-          if (rName == 'Client User') {
-            setRoleName(rName);
-            setRowSelectable('none');
-            setLeftHeaderSpace('0%');
-            setLeftDataSpace('0%');
-          }
-          console.log(res.data.Data);
+          setDomainData(res.data.Data);
           setLoading(false);
-          setClientData(res.data.Data);
           setDialogOpen(false);
-          setSeverity('success');
         } else {
           setMessage(res.data.StatusMessage);
+          setSnackOpen(true);
+          setSeverity('success');
           setLoading(false);
           setDialogOpen(false);
-          setSnackOpen(true);
-          setSeverity('error');
         }
       })
       .catch((err) => {
-        console.log(err);
         setLoading(false);
-        setMessage('Failed to Get client List');
         setDialogOpen(false);
+        console.log(err);
         setSnackOpen(true);
+        setMessage('Failed to Fetch the data');
         setSeverity('error');
       });
   }
 
-  const goBack = () => {
-    setSnackOpen(false);
-  };
-
   const handleDelete = (item) => {
     confirm({
-      description: `Once deleted, you will not be able to recover this client.`
+      description: `Once deleted, you will not be able to recover this Domain.`
     })
-      .then(() => deleteClient(item))
+      .then(() => deleteDomain(item))
       .catch(() => console.log('Deletion cancelled.'));
   };
 
-  async function deleteClient(clientId) {
+  async function deleteDomain(domainId) {
     setLoading(true);
     setDialogOpen(true);
     const postData = [
       {
-        Id: clientId,
+        Id: domainId,
         ModifiedBy: localStorage.getItem('UserId'),
         ModifiedDate: moment(new Date()).format('MM-DD-YYYY')
       }
     ];
 
     axios
-      .delete('Clients/DeleteClient', { data: postData })
+      .delete('Users/DeleteDomain', { data: postData })
       .then((res) => {
         if (res.data.StatusCode == 200) {
-          setMessage('Client Deleted');
+          setDialogOpen(false);
+          setMessage('Domain Deleted Successfully');
           setSnackOpen(true);
           setSeverity('success');
           window.location.reload();
@@ -283,7 +268,6 @@ function Clients() {
           setLoading(false);
           setDialogOpen(false);
           setMessage(res.data.StatusMessage);
-          setTimeout(goBack, 2000);
           setSeverity('error');
           setSnackOpen(true);
         }
@@ -292,114 +276,29 @@ function Clients() {
         console.log(err);
         console.log(severity);
         setDialogOpen(false);
-        setMessage('Failed To Delete Client');
+        setLoading(false);
+        setMessage('Failed To Delete Domain');
         setSnackOpen(true);
         setSeverity('error');
         window.location.reload();
       });
   }
 
+  const handleSnacKClose = (
+    event: React.SyntheticEvent | Event,
+    reason?: string
+  ) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    console.log(event);
+    setSnackOpen(false);
+  };
+
   const columns = [
     {
-      name: 'ClientName',
-      label: 'Client Name',
-      options: {
-        filter: true,
-        sort: true,
-        setCellProps: () => ({
-          style: {
-            minWidth: '150px',
-            maxWidth: '150px',
-            whiteSpace: 'nowrap',
-            position: 'sticky',
-            left: leftDataSpace,
-            background: 'white',
-            zIndex: 100
-          }
-        }),
-        setCellHeaderProps: () => ({
-          style: {
-            position: 'sticky',
-            left: leftHeaderSpace,
-            top: 0, //Incase Header is Fixed
-            zIndex: 102
-          }
-        })
-      }
-    },
-    {
-      name: 'Address',
-      label: 'Address',
-      options: {
-        filter: true,
-        sort: true,
-        customBodyRender: (value) => {
-          return value === null || value === '' ? 'NA' : value;
-        },
-        setCellProps: () => ({
-          style: { minWidth: '150px', maxWidth: '150px' }
-        })
-      }
-    },
-    {
-      name: 'City',
-      label: 'City',
-      options: {
-        filter: true,
-        sort: true,
-        customBodyRender: (value) => {
-          return value === null || value === '' ? 'NA' : value;
-        },
-        setCellProps: () => ({
-          style: { minWidth: '150px', maxWidth: '150px' }
-        })
-      }
-    },
-    {
-      name: 'State',
-      label: 'State',
-      options: {
-        filter: false,
-        sort: true,
-        customBodyRender: (value) => {
-          return value === null || value === '' ? 'NA' : value;
-        },
-        setCellProps: () => ({
-          style: { minWidth: '150px', maxWidth: '150px' }
-        })
-      }
-    },
-    {
-      name: 'Zip',
-      label: 'Zip',
-      options: {
-        filter: true,
-        sort: true,
-        customBodyRender: (value) => {
-          return value === null || value === '' ? 'NA' : value;
-        },
-        setCellProps: () => ({
-          style: { minWidth: '150px', maxWidth: '150px' }
-        })
-      }
-    },
-    {
-      name: 'Phone',
-      label: 'Phone',
-      options: {
-        filter: true,
-        sort: true,
-        customBodyRender: (value) => {
-          return value === null || value === '' ? 'NA' : value;
-        },
-        setCellProps: () => ({
-          style: { minWidth: '180px', maxWidth: '180px' }
-        })
-      }
-    },
-    {
-      name: 'Domains',
-      label: 'Domain Name ',
+      name: 'DomainName',
+      label: 'Domain Name',
       options: {
         filter: true,
         sort: true,
@@ -407,50 +306,58 @@ function Clients() {
           return value === (null || '') ? 'NA' : value;
         },
         setCellProps: () => ({
-          style: { minWidth: '200px', maxWidth: '200px', position: 'sticky' ,wordWrap: 'break-word' }
+          style: { minWidth: '120px', maxWidth: '120px', position: 'sticky' }
         })
       }
     },
     {
-      name: 'Fax',
-      label: 'Fax',
+      name: 'UserName',
+      label: 'Created By ',
+      options: {
+        filter: false,
+        sort: true,
+        customBodyRender: (value) => {
+          return value === (null || '') ? 'NA' : value;
+        },
+        setCellProps: () => ({
+          style: { minWidth: '120px', maxWidth: '120px', position: 'sticky' }
+        })
+      }
+    },
+    {
+      name: 'CreatedDate',
+      label: 'Created Date',
+      options: {
+        filter: false,
+        sort: true,
+        setCellProps: () => ({
+          style: {
+            minWidth: '130px',
+            maxWidth: '130px'
+          }
+        }),
+        customBodyRender: (value) => {
+          return value === null || value === ''
+            ? 'NA'
+            : moment(value).format('MM/DD/YYYY');
+        }
+      }
+    },
+    {
+      name: 'Status',
+      label: 'Status',
       options: {
         filter: true,
         sort: true,
-        customBodyRender: (value) => {
-          return value === null || value === '' ? 'NA' : value;
-        },
         setCellProps: () => ({
-          style: { minWidth: '150px', maxWidth: '150px' }
-        })
-      }
-    },
-    {
-      name: 'ContactPersonName',
-      label: 'Contact Person Name',
-      options: {
-        filter: false,
-        sort: true,
+          style: {
+            minWidth: '130px',
+            maxWidth: '130px'
+          }
+        }),
         customBodyRender: (value) => {
-          return value === null || value === '' ? 'NA' : value;
-        },
-        setCellProps: () => ({
-          style: { minWidth: '200px', maxWidth: '200px' }
-        })
-      }
-    },
-    {
-      name: 'TimeZone',
-      label: 'TimeZone',
-      options: {
-        filter: false,
-        sort: true,
-        customBodyRender: (value) => {
-          return value === null || value === '' ? 'NA' : value;
-        },
-        setCellProps: () => ({
-          style: { minWidth: '150px', maxWidth: '150px' }
-        })
+          return value === null ? 'NA' : value;
+        }
       }
     },
     {
@@ -458,11 +365,10 @@ function Clients() {
       options: {
         filter: false,
         download: false,
-
         setCellProps: () => ({
           style: {
-            minWidth: '80px',
-            maxWidth: '80px',
+            minWidth: '60px',
+            maxWidth: '60px',
             whiteSpace: 'nowrap',
             position: 'sticky',
             right: 0,
@@ -484,7 +390,7 @@ function Clients() {
               <Tooltip placement="top" title="View" arrow>
                 <IconButton
                   onClick={() => {
-                    setId(clientData[dataIndex].ClientId);
+                    setId(domainData[dataIndex].DomainMasterId);
                     setOpen(true);
                   }}
                   sx={{
@@ -499,27 +405,23 @@ function Clients() {
                   <VisibilityIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-              {roleName == 'Client User' ? (
-                ''
-              ) : (
-                <Tooltip placement="top" title="Delete" arrow>
-                  <IconButton
-                    onClick={() => {
-                      handleDelete(clientData[dataIndex].ClientId);
-                    }}
-                    sx={{
-                      '&:hover': {
-                        background: theme.colors.error.lighter
-                      },
-                      color: theme.palette.error.main
-                    }}
-                    color="inherit"
-                    size="small"
-                  >
-                    <DeleteTwoToneIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              )}
+              <Tooltip placement="top" title="Delete" arrow>
+                <IconButton
+                  onClick={() => {
+                    handleDelete(domainData[dataIndex].DomainMasterId);
+                  }}
+                  sx={{
+                    '&:hover': {
+                      background: theme.colors.error.lighter
+                    },
+                    color: theme.palette.error.main
+                  }}
+                  color="inherit"
+                  size="small"
+                >
+                  <DeleteTwoToneIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             </>
           );
         }
@@ -529,24 +431,23 @@ function Clients() {
 
   const options = {
     responsive: 'scroll',
-    selectableRows: rowSelectable,
     onRowsDelete: (rowsDeleted) => {
       confirm({
-        description: `Once deleted, you will not be able to recover this Clients.`
+        description: `Once deleted, you will not be able to recover this Domain.`
       })
         .then(() => {
           const idsToDelete = rowsDeleted.data.map(
-            (d) => clientData[d.dataIndex].ClientId
+            (d) => domainData[d.dataIndex].DomainMasterId
           );
-          bulkDeleteClients(idsToDelete);
+          bulkDeleteDomain(idsToDelete);
         })
         .catch(() => window.location.reload());
     },
     print: false,
-    downloadOptions: { filename: 'clients.csv', separator: ',' }
+    downloadOptions: { filename: 'domain.csv', separator: ',' }
   };
 
-  async function bulkDeleteClients(item) {
+  async function bulkDeleteDomain(item) {
     setLoading(true);
     setDialogOpen(true);
     var deleteArray = [];
@@ -559,20 +460,20 @@ function Clients() {
       deleteArray.push(postData);
     }
     axios
-      .delete('Clients/DeleteClient', { data: deleteArray })
+      .delete('Users/DeleteDomain', { data: deleteArray })
       .then((res) => {
         console.log(res);
         if (res.data.StatusCode == 200) {
           setDialogOpen(false);
-          setMessage('Selected Clients Deleted Successfully');
+          setLoading(false);
           setSnackOpen(true);
+          setMessage('Selected Domain Deleted Successfully');
           setSeverity('success');
           window.location.reload();
         } else {
           setLoading(false);
           setDialogOpen(false);
           setMessage(res.data.StatusMessage);
-          setTimeout(goBack, 2000);
           setSeverity('error');
           setSnackOpen(true);
         }
@@ -580,11 +481,10 @@ function Clients() {
       .catch((err) => {
         console.log(err);
         setDialogOpen(false);
-        setMessage('Failed To Delete Clients');
+        setMessage('Failed To Delete Domain');
         setSnackOpen(true);
         setSeverity('error');
         setLoading(false);
-        window.location.reload();
       });
   }
 
@@ -608,8 +508,9 @@ function Clients() {
   return (
     <>
       <Head>
-        <title>clients</title>
+        <title>Domain</title>
       </Head>
+
       <Container maxWidth="xl">
         <Grid
           container
@@ -619,7 +520,7 @@ function Clients() {
           spacing={3}
           style={{ marginTop: '10px' }}
         >
-          <Grid item xs={10}>
+          <Grid item xs={9}>
             <Typography
               variant="h3"
               component="h3"
@@ -629,27 +530,23 @@ function Clients() {
                 textTransform: 'uppercase'
               }}
             >
-              clients
+              Domain
             </Typography>
           </Grid>
-          <Grid item xs={2}>
-            {roleName == 'Client User' ? (
-              ''
-            ) : (
-              <Button
-                variant="contained"
-                size="large"
-                style={{
-                  marginLeft: 13,
-                  float: 'right',
-                  background: '#9DA338 !important'
-                }}
-                startIcon={<AddIcon />}
-                onClick={handleOpen}
-              >
-                Add Client
-              </Button>
-            )}
+          <Grid item xs={3}>
+            <Button
+              variant="contained"
+              size="large"
+              style={{
+                marginLeft: 13,
+                float: 'right',
+                background: '#9DA338 !important'
+              }}
+              startIcon={<AddIcon />}
+              onClick={handleOpen}
+            >
+              Add Domain
+            </Button>
             <Modal
               open={open}
               onClose={handleClose}
@@ -667,11 +564,10 @@ function Clients() {
                     color: '#223354'
                   }}
                 >
-                  Add Client
+                  Add Domain
                 </h3>
                 <IconButton
                   onClick={() => {
-                    getClientData();
                     setOpen(false);
                   }}
                   sx={{
@@ -687,7 +583,7 @@ function Clients() {
                   <CloseIcon color="error" />
                 </IconButton>
                 <div style={{ marginTop: '30px' }}>
-                  <AddClient props={id} />
+                  <AddDomain props={id} />
                 </div>
               </Box>
             </Modal>
@@ -696,10 +592,14 @@ function Clients() {
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
               <Snackbar
                 open={snackopen}
-                autoHideDuration={6000}
-                onClose={handleClose}
+                autoHideDuration={3000}
+                onClose={handleSnacKClose}
               >
-                <Alert severity="success" sx={{ width: '100%' }}>
+                <Alert
+                  severity="success"
+                  variant="filled"
+                  sx={{ width: '100%' }}
+                >
                   {message}
                 </Alert>
               </Snackbar>
@@ -727,7 +627,7 @@ function Clients() {
             ) : (
               <ThemeProvider theme={getMuiTheme()}>
                 <MUIDataTable
-                  data={clientData}
+                  data={domainData}
                   columns={columns}
                   options={options}
                 />
@@ -741,6 +641,6 @@ function Clients() {
   );
 }
 
-Clients.getLayout = (page) => <SidebarLayout>{page}</SidebarLayout>;
+Domain.getLayout = (page) => <SidebarLayout>{page}</SidebarLayout>;
 
-export default Clients;
+export default Domain;

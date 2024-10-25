@@ -184,8 +184,9 @@ function HeaderMenu() {
           )}
 
           {permission.some(
-            (item) => item.permission_name === 'Genotype Configuration'
-          ) ? (
+            (item) => item.permission_name === 'Genotype Configuration' 
+          ) ||
+          permission.some((item) => item.permission_name === 'Condition Configuration') ? (
             <ListItem sx={{ padding: 0.1, marginRight: '5px' }}>
               <ConfigurationBox />
             </ListItem>

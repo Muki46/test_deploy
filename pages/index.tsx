@@ -1,11 +1,18 @@
-import { Button, styled, Box } from '@mui/material';
+import {
+  Button,
+  styled,
+  Box,
+  Grid,
+  InputAdornment,
+  IconButton,
+  Link
+} from '@mui/material';
 import Router from 'next/router';
 import type { ReactElement } from 'react';
+import TextField from '@mui/material/TextField';
 import BaseLayout from 'src/layouts/BaseLayout';
 import Landing from '../pages/components/landing';
-import { useMsal } from '@azure/msal-react';
-import { AuthError, InteractionStatus } from '@azure/msal-browser';
-import { useEffect, useState, forwardRef } from 'react';
+import { useState, forwardRef } from 'react';
 import { DNA } from 'react-loader-spinner';
 import { useAxios } from './services';
 import Dialog from '@mui/material/Dialog';
@@ -14,6 +21,12 @@ import Slide from '@mui/material/Slide';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import { TransitionProps } from '@mui/material/transitions';
+import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as Yup from 'yup';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import Captcha from 'demos-react-captcha';
 import moment from 'moment-timezone';
 
 const Transition = forwardRef(function Transition(
@@ -29,10 +42,10 @@ const Panel = styled(Box)(
   () => `
     position: absolute;
     z-index: 10;
-    width: 800px;
-    height: 250px;
+    width: 850px;
+    height: 380px;
     background: #eee;
-    top: 50%;
+    top: 40%;
     left: 30%;
     margin: -110px 0 0 -100px;
     padding: 20px;
@@ -42,83 +55,27 @@ const Panel = styled(Box)(
 `
 );
 
-export const getDisplayTextForAuthentificationStatus = (
-  status: InteractionStatus
-) => {
-  switch (status) {
-    case InteractionStatus.AcquireToken:
-      return 'aquiring token';
-    case InteractionStatus.HandleRedirect:
-      return 'redirectig';
-    case InteractionStatus.Login:
-      return 'logging in';
-    case InteractionStatus.Logout:
-      return 'logging out';
-    case InteractionStatus.None:
-      return 'doing nothing';
-    case InteractionStatus.SsoSilent:
-      return 'SSO Silent';
-    case InteractionStatus.Startup:
-      return 'starting up';
-  }
-};
-
 function Overview() {
-  const msal = useMsal();
   const [dopen, setDialogOpen] = useState(false);
   const [snackopen, setSnackOpen] = useState(false);
   const [severity, setSeverity] = useState('Success');
   const [message, setMessage] = useState('');
-
+  const [showPassword, setShowPassword] = useState(false);
+  const [captcha, setCaptcha] = useState(false);
   const [axios] = useAxios();
-  const [interactionHistory, setInteractionHistory] = useState<
-    InteractionStatus[]
-  >([]);
 
-  const [error, setError] = useState('');
+  const validationSchema = Yup.object().shape({
+    uname: Yup.string().required('Username is required'),
+    pwd: Yup.string().required('Password is required')
+  });
 
-  useEffect(() => {
-    setInteractionHistory([...interactionHistory, msal.inProgress]);
-  }, [msal.inProgress]);
-
-  const authenticate = async () => {
-    try {
-      const result = await msal.instance.loginPopup();
-      setDialogOpen(true);
-      console.log('Home Account id:', result.account, severity);
-      msal.instance.setActiveAccount(result.account);
-      silentAuthentificate();
-    } catch (ex) {
-      throw ex;
-    }
-  };
-
-  const silentAuthentificate = async () => {
-    const accessTokenRequest = {
-      scopes: ['api://5cf3e0ce-6bee-4ebe-b790-7bd7442f1751/ReadAccess']
-    };
-    try {
-      console.log(msal.instance);
-      const currentAccount = msal.instance.getActiveAccount();
-      console.log('Current account is:', currentAccount.homeAccountId);
-
-      await msal.instance
-        .acquireTokenSilent(accessTokenRequest)
-        .then((tokenResponse) => {
-          localStorage.setItem('token', tokenResponse.accessToken);
-          localStorage.setItem('accountId', currentAccount.homeAccountId);
-          loadIp();
-        });
-
-      setError('');
-    } catch (ex) {
-      const authEx = ex as AuthError;
-      setError(authEx.message);
-      console.log(error);
-    }
+  const onCaptchaChange = async (value) => {
+    console.log(severity);
+    setCaptcha(value);
   };
 
   const loadIp = async () => {
+    setDialogOpen(true);
     const response = await fetch('https://api.ipify.org/?format=json');
     const data = await response.json();
     console.log(data.ip);
@@ -135,8 +92,9 @@ function Overview() {
   };
 
   async function loginDetails(userIP, location) {
+    const userid = localStorage.getItem('UserId');
     await axios
-      .get('Users/GetLoginUserDetails?userIp=' + userIP)
+      .get(`Users/GetLoginUserDetails?userIp=${userIP}&userid=${userid}`)
       .then((res) => {
         if (res.data.StatusCode == 200) {
           localStorage.setItem('UserId', res.data.Data.UserDetails.user_id);
@@ -191,7 +149,6 @@ function Overview() {
           setMessage(res.data.StatusMessage);
           setSnackOpen(true);
           setSeverity('error');
-          setTimeout(logoff, 4000);
         }
       });
   }
@@ -224,7 +181,6 @@ function Overview() {
           setMessage(res.data.Data);
           setSnackOpen(true);
           setSeverity('error');
-          setTimeout(logoff, 2000);
         }
       })
       .catch((err) => {
@@ -253,6 +209,9 @@ function Overview() {
         if (res.data.StatusCode == 200) {
           console.log(res);
           setDialogOpen(false);
+          Router.push({
+            pathname: '/dashboards/crypto'
+          });
         } else {
           setDialogOpen(false);
           setMessage(res.data.StatusMessage);
@@ -267,15 +226,70 @@ function Overview() {
       });
   }
 
-  const logoff = async () => {
-    const account = await msal.instance.getActiveAccount();
-    const currentAccount = await msal.instance.getAccountByHomeId(
-      account.homeAccountId
-    );
-    const logoutHint = currentAccount.idTokenClaims.login_hint;
-    await msal.instance.logoutPopup({
-      logoutHint: logoutHint,
-      mainWindowRedirectUri: '/'
+  const {
+    control,
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm({
+    defaultValues: {
+      uname: '',
+      pwd: ''
+    },
+    resolver: yupResolver(validationSchema)
+  });
+
+  const onSubmit = (data) => {
+    setDialogOpen(true);
+    console.log(data);
+    var postData = {
+      UserName: data.uname,
+      Password: data.pwd
+    };
+    if (captcha == true) {
+      getAuth(postData);
+    } else {
+      setSnackOpen(true);
+      setMessage('Enter valid captcha ');
+      setDialogOpen(false);
+    }
+  };
+
+  async function getAuth(data) {
+    axios
+      .post(
+        'https://etadevapi.azurewebsites.net/api/Auth/login?api-version=1',
+        data
+      )
+      .then((res) => {
+        setDialogOpen(false);
+        console.log(res.data.UserId);
+        localStorage.setItem('token', res.data.JWtToken);
+        localStorage.setItem('UserId', res.data.UserId);
+        localStorage.setItem('Email', res.data.Email);
+        if (res.data.IsFirstTimeLogin == true) {
+          gotoHorizontalStepper();
+        } else {
+          loadIp();
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+        setSnackOpen(true);
+        setMessage('Invalid Credentials');
+        setSeverity('error');
+        setDialogOpen(false);
+        setTimeout(goOff, 1000);
+      });
+  }
+
+  const goOff = () => {
+    window.location.reload();
+  };
+
+  const gotoForgotPasswordPage = () => {
+    Router.push({
+      pathname: './components/forgotPassword'
     });
   };
 
@@ -284,6 +298,17 @@ function Overview() {
       return;
     }
     setSnackOpen(false);
+  };
+
+  const gotoHorizontalStepper = () => {
+    setDialogOpen(true);
+    Router.push({
+      pathname: './components/horizontalStepper'
+    });
+  };
+
+  const handleClickShowPassword = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -331,22 +356,124 @@ function Overview() {
             alt="EndoDNA-logo"
             src="/static/images/logo/EndoDNA-logo.png"
           />
-          <h3 style={{ fontSize: '22px' }}>
+          <h3 style={{ fontSize: '18px' }}>
             The breakthrough DNA test that matches you with the right
-            cannabinoid products for your wellness journey21.
+            cannabinoid products for your wellness journey.
           </h3>
-          <Button
-            variant="contained"
-            color="success"
-            onClick={authenticate}
-            style={{
-              fontSize: '16px',
-              textTransform: 'uppercase',
-              padding: '10px 30px'
+          <Box
+            component="form"
+            sx={{
+              '& .MuiTextField-root': { mt: 3, ml: 3 }
             }}
+            noValidate
+            autoComplete="off"
+            onSubmit={handleSubmit(onSubmit)}
           >
-            Login
-          </Button>
+            <Grid
+              container
+              direction="row"
+              justifyContent="center"
+              alignItems="stretch"
+              spacing={3}
+            >
+              <Grid container>
+                <Grid item xs={6}>
+                  <Controller
+                    name="uname"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        sx={{ width: '46ch' }}
+                        id="uname"
+                        required
+                        label="Username"
+                        variant="filled"
+                        {...register('uname')}
+                        error={errors.uname ? true : false}
+                        helperText={errors.uname?.message}
+                      />
+                    )}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <Controller
+                    name="pwd"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        sx={{ width: '46ch' }}
+                        {...field}
+                        id="pwd"
+                        required
+                        type={showPassword ? 'text' : 'password'}
+                        label="Password"
+                        variant="filled"
+                        {...register('pwd')}
+                        error={errors.pwd ? true : false}
+                        helperText={errors.pwd?.message}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                aria-label="toggle password visibility"
+                                onClick={handleClickShowPassword}
+                                edge="end"
+                              >
+                                {showPassword ? (
+                                  <VisibilityIcon />
+                                ) : (
+                                  <VisibilityOffIcon />
+                                )}
+                              </IconButton>
+                            </InputAdornment>
+                          )
+                        }}
+                      />
+                    )}
+                  />
+                  <Link
+                    variant="h6"
+                    color="primary"
+                    onClick={gotoForgotPasswordPage}
+                    sx={{
+                      cursor: 'pointer',
+                      float: 'right',
+                      paddingRight: '5px',
+                      fontSize: '15px !important'
+                    }}
+                  >
+                    {' '}
+                    Forgot Password?
+                  </Link>
+                </Grid>
+              </Grid>
+              <Grid container>
+                <Grid item xs={4} sx={{ ml: '20px' }}>
+                  <Captcha
+                    onChange={onCaptchaChange}
+                    placeholder="Enter captcha"
+                    length={5}
+                  />
+                </Grid>
+                <Grid item xs={7} sx={{ marginTop: '58px' }}>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    type="submit"
+                    // onClick={gotoHorizontalStepper}
+                    style={{
+                      fontSize: '16px',
+                      textTransform: 'uppercase',
+                      padding: '10px 30px'
+                    }}
+                  >
+                    Login
+                  </Button>
+                </Grid>
+              </Grid>
+            </Grid>
+          </Box>
         </Panel>
       </div>
     </main>

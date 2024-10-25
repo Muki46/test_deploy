@@ -201,21 +201,21 @@ function GraphState() {
   const [snackopen, setSnackOpen] = useState(false);
   const [severity, setSeverity] = useState('info');
   const [message, setMessage] = useState('');
-  const [reportCategoryData, setReportCategoryData] = useState([]);
+  const [graphStateData, setGraphStateData] = useState([]);
 
   useEffect(() => {
     console.log(severity);
-    getReportCategoryList();
+    getGraphStateList();
   }, []);
 
-  async function getReportCategoryList() {
+  async function getGraphStateList() {
     setLoading(true);
     setDialogOpen(true);
     await axios
-      .get(`Category/GetReportCategoryList`)
+      .get(`Master/GetGraphStateList?api-version=1`)
       .then((res) => {
         if (res.data.StatusCode == 200) {
-          setReportCategoryData(res.data.Data);
+          setGraphStateData(res.data.Data);
           setLoading(false);
           setDialogOpen(false);
         } else {
@@ -238,36 +238,36 @@ function GraphState() {
 
   const goBack = () => {
     Router.push({
-      pathname: '/components/category'
+      pathname: '/components/graphState'
     });
-    getReportCategoryList();
+    getGraphStateList();
   };
 
   const handleDelete = (item) => {
     confirm({
-      description: `Once deleted, you will not be able to recover this Category.`
+      description: `Once deleted, you will not be able to recover this Graph State.`
     })
-      .then(() => deleteReportCategory(item))
+      .then(() => deleteGraphState(item))
       .catch(() => console.log('Deletion cancelled.'));
   };
 
-  async function deleteReportCategory(categoryid) {
+  async function deleteGraphState(graphStateId) {
     setLoading(true);
     setDialogOpen(true);
     const postData = [
       {
-        Id: categoryid,
+        Id: graphStateId,
         ModifiedBy: localStorage.getItem('UserId'),
         ModifiedDate: moment(new Date()).format('MM-DD-YYYY')
       }
     ];
 
     axios
-      .delete('Category/DeleteReportCategory', { data: postData })
+      .delete('Master/DeleteGraphState', { data: postData })
       .then((res) => {
         if (res.data.StatusCode == 200) {
           setDialogOpen(false);
-          setMessage('Category Deleted');
+          setMessage('Graph State Deleted');
           setSnackOpen(true);
           setSeverity('success');
           setTimeout(goBack, 1000);
@@ -284,7 +284,7 @@ function GraphState() {
         console.log(severity);
         setDialogOpen(false);
         setLoading(false);
-        setMessage('Failed To Delete Category');
+        setMessage('Failed To Delete Graph State');
         setSnackOpen(true);
         setSeverity('error');
         setTimeout(goBack, 1000);
@@ -304,8 +304,8 @@ function GraphState() {
 
   const columns = [
     {
-      name: 'ReportName',
-      label: 'Report Name ',
+      name: 'GraphStateName',
+      label: 'Graph State ',
       options: {
         filter: true,
         sort: true,
@@ -314,38 +314,6 @@ function GraphState() {
         },
         setCellProps: () => ({
           style: { minWidth: '80px', maxWidth: '80px', position: 'sticky' }
-        })
-      }
-    },
-    {
-      name: 'CategoryName',
-      label: 'Category Name',
-      options: {
-        filter: true,
-        sort: true,
-        customBodyRender: (value) => {
-          return value === null ? 'NA' : value;
-        },
-        setCellProps: () => ({
-          style: { minWidth: '150px', maxWidth: '150px' }
-        })
-      }
-    },
-    {
-      name: 'CategoryIntroduction',
-      label: 'Category Description',
-      options: {
-        filter: false,
-        sort: true,
-        customBodyRender: (value) => {
-          return value === null || value === ' ' || value === ''
-            ? 'NA'
-            : value.length <= 45
-            ? value
-            : value.substr(0, 45) + '...';
-        },
-        setCellProps: () => ({
-          style: { minWidth: '180px', maxWidth: '180px' }
         })
       }
     },
@@ -390,7 +358,7 @@ function GraphState() {
               <Tooltip placement="top" title="View" arrow>
                 <IconButton
                   onClick={() => {
-                    setId(reportCategoryData[dataIndex].CategoryId);
+                    setId(graphStateData[dataIndex].GraphStateId);
                     setOpen(true);
                   }}
                   sx={{
@@ -408,7 +376,7 @@ function GraphState() {
               <Tooltip placement="top" title="Delete" arrow>
                 <IconButton
                   onClick={() => {
-                    handleDelete(reportCategoryData[dataIndex].CategoryId);
+                    handleDelete(graphStateData[dataIndex].GraphStateId);
                   }}
                   sx={{
                     '&:hover': {
@@ -433,33 +401,33 @@ function GraphState() {
     responsive: 'scroll',
     onRowsDelete: (rowsDeleted) => {
       confirm({
-        description: `Once deleted, you will not be able to recover this Category.`
+        description: `Once deleted, you will not be able to recover this Graph State.`
       })
         .then(() => {
           const idsToDelete = rowsDeleted.data.map(
-            (d) => reportCategoryData[d.dataIndex].CategoryId
+            (d) => graphStateData[d.dataIndex].GraphStateId
           );
-          bulkDeleteReportCategory(idsToDelete);
+          bulkDeleteGraphState(idsToDelete);
         })
         .catch(() => setTimeout(goBack, 4000));
     },
     print: false,
     onDownload: () => {
-      GetReportCategoryListFile();
+      GetGraphStateListFile();
       //prevents default download behavior
       return false;
     }
   };
 
-  async function GetReportCategoryListFile() {
+  async function GetGraphStateListFile() {
     setLoading(true);
     setDialogOpen(true);
     await axios
-      .get(`Category/GetReportCategoryListFile`, { responseType: 'blob' })
+      .get(`Master/GetGraphStateListFile`, { responseType: 'blob' })
       .then((res) => {
         let a = document.createElement('a');
         a.href = URL.createObjectURL(res.data);
-        a.download = 'CategoryList.csv';
+        a.download = 'GraphStateList.csv';
         a.click();
         a.remove();
         console.log(res);
@@ -471,12 +439,12 @@ function GraphState() {
         setDialogOpen(false);
         console.log(err);
         setSnackOpen(true);
-        setMessage('Failed to download Report Category List');
+        setMessage('Failed to download Color List File');
         setSeverity('error');
       });
   }
 
-  async function bulkDeleteReportCategory(item) {
+  async function bulkDeleteGraphState(item) {
     setLoading(true);
     setDialogOpen(true);
     var deleteArray = [];
@@ -489,14 +457,14 @@ function GraphState() {
       deleteArray.push(postData);
     }
     axios
-      .delete('Category/DeleteReportCategory', { data: deleteArray })
+      .delete('Master/DeleteGraphState', { data: deleteArray })
       .then((res) => {
         console.log(res);
         if (res.data.StatusCode == 200) {
           setDialogOpen(false);
           setLoading(false);
           setSnackOpen(true);
-          setMessage('Selected Category Deleted Successfully');
+          setMessage('Selected Graph State Deleted Successfully');
           setSeverity('success');
           setTimeout(goBack, 1000);
         } else {
@@ -510,7 +478,7 @@ function GraphState() {
       .catch((err) => {
         console.log(err);
         setDialogOpen(false);
-        setMessage('Failed To Delete Category');
+        setMessage('Failed To Delete Graph State');
         setSnackOpen(true);
         setSeverity('error');
         setLoading(false);
@@ -538,7 +506,7 @@ function GraphState() {
   return (
     <>
       <Head>
-        <title>Category</title>
+        <title>Graph State</title>
       </Head>
 
       <Container maxWidth="xl">
@@ -560,7 +528,7 @@ function GraphState() {
                 textTransform: 'uppercase'
               }}
             >
-              Category
+              Graph State
             </Typography>
           </Grid>
           <Grid item xs={3}>
@@ -575,7 +543,7 @@ function GraphState() {
               startIcon={<AddIcon />}
               onClick={handleOpen}
             >
-              Add Category
+              Add Graph State
             </Button>
             <Modal
               open={open}
@@ -594,7 +562,7 @@ function GraphState() {
                     color: '#223354'
                   }}
                 >
-                  Add Category
+                  Add Graph State
                 </h3>
                 <IconButton
                   onClick={() => {
@@ -657,7 +625,7 @@ function GraphState() {
             ) : (
               <ThemeProvider theme={getMuiTheme()}>
                 <MUIDataTable
-                  data={reportCategoryData}
+                  data={graphStateData}
                   columns={columns}
                   options={options}
                 />

@@ -7,6 +7,8 @@ import {
   Link,
   MenuItem,
   Select,
+  InputAdornment,
+  IconButton,
   Typography
 } from '@mui/material';
 import Box from '@mui/material/Box';
@@ -26,6 +28,8 @@ import DialogContent from '@mui/material/DialogContent';
 import Slide from '@mui/material/Slide';
 import { TransitionProps } from '@mui/material/transitions';
 import { DNA } from 'react-loader-spinner';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
 const Transition = forwardRef(function Transition(
   props: TransitionProps & {
@@ -63,8 +67,18 @@ function AddUser(data) {
   const [clientId, setClientId] = useState(0);
   const [roleName, setRoleName] = useState('');
   const [lpId, setLpId] = useState('');
+  const [showPassword1, setShowPassword1] = useState(false);
+  const [domainName, setDomainName] = useState([]);
 
-  const blackListedDomains = ['endodnait'];
+  const domainNames = [];
+
+  domainName.forEach((item) => {
+    domainNames.push(item.domain_name);
+  });
+
+  console.log(domainNames);
+
+  const blackListedDomains = domainNames;
 
   const validationSchema = Yup.object().shape(
     {
@@ -87,23 +101,34 @@ function AddUser(data) {
       fname: Yup.string().required('First Name is required'),
       lname: Yup.string().required('Last Name is required'),
       uname: Yup.string().required('User Name is required'),
-      email: Yup.string()
-        .required('Email is required')
-        .email('Email is invalid')
-        .test(
-          'is-not-blacklist',
-          'Please use email ends with endodnait.com',
-          (value) => {
-            if (value) {
-              const currentDomain = value.substring(
-                value.indexOf('@') + 1,
-                value.indexOf('.')
-              );
+      email:
+        roleId == 6 || roleId == 2 || domainNames.length == 0
+          ? Yup.string()
+              .required('Email is required')
+              .when('email', {
+                is: (value) => value?.length,
+                then: (rule) => rule.email('Email is invalid')
+              })
+          : Yup.string()
+              .required('Email is required')
+              .email('Email is invalid')
+              .test(
+                'is-not-blacklist',
+                `Please use email ends with  ${domainNames} `,
+                (value) => {
+                  if (value) {
+                    const currentDomain = value.substring(
+                      value.indexOf('@') + 1
+                    );
 
-              return blackListedDomains.includes(currentDomain);
-            }
-          }
-        ),
+                    return blackListedDomains.includes(currentDomain);
+                  }
+                }
+              ),
+      cpwd:
+        buttonStatus == 'Update'
+          ? Yup.string().nullable().notRequired()
+          : Yup.string().required('Password Required'),
       address: Yup.string().nullable().notRequired(),
       zip: Yup.string().nullable().notRequired(),
       city: Yup.string().nullable().notRequired(),
@@ -120,7 +145,8 @@ function AddUser(data) {
     },
     [
       // Add Cyclic deps here because when require itself
-      ['mobNo', 'mobNo']
+      ['mobNo', 'mobNo'],
+      ['email', 'email']
     ]
   );
 
@@ -148,6 +174,7 @@ function AddUser(data) {
       lname: '',
       address: '',
       email: '',
+      cpwd: '',
       uname: '',
       zip: '',
       city: '',
@@ -189,6 +216,7 @@ function AddUser(data) {
       State: state,
       Zip: data.zip,
       Email: data.email,
+      Password: data.cpwd,
       ClientId: clientId,
       ProviderId: providerId,
       PatientId: patientId,
@@ -218,13 +246,13 @@ function AddUser(data) {
           setMessage('User Created');
           setSnackOpen(true);
           setSeverity('success');
-          postAduitLog(data.UserName + ' has been created successfully');
+          postAduitLog(data.UserName + ' has been created successfully', 0);
         } else {
           setIsUpdating(false);
           setMessage(res.data.StatusMessage);
           setSnackOpen(true);
           setSeverity('success');
-          postAduitLog(data.uname + 'creation failed');
+          postAduitLog(data.uname + 'creation failed', 1);
         }
       })
       .catch((err) => {
@@ -235,6 +263,10 @@ function AddUser(data) {
         setSeverity('error');
       });
   }
+
+  const handleClickShowPassword1 = () => {
+    setShowPassword1(!showPassword1);
+  };
 
   async function updateUser(data) {
     data.UserId = userId;
@@ -277,6 +309,7 @@ function AddUser(data) {
   };
 
   useEffect(() => {
+    console.log(passopen);
     setIsUpdating(true);
     setDialogOpen(true);
     getUserOpeningData();
@@ -396,7 +429,30 @@ function AddUser(data) {
             }
           } else {
             setProviderData(res.data.Data);
+            getDomainClientMappingByClientIdActive(clientId);
           }
+          setIsUpdating(false);
+          setDialogOpen(false);
+        } else {
+          setIsUpdating(false);
+          setDialogOpen(false);
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+        setIsUpdating(false);
+        setDialogOpen(false);
+      });
+  }
+
+  async function getDomainClientMappingByClientIdActive(clientid) {
+    setIsUpdating(true);
+    setDialogOpen(true);
+    axios
+      .get(`Users/GetDomainClientMappingByClientIdActive/${clientid}`)
+      .then((res) => {
+        if (res.data.StatusCode == 200) {
+          setDomainName(res.data.Data.ClientDomainMaster);
           setIsUpdating(false);
           setDialogOpen(false);
         } else {
@@ -576,7 +632,34 @@ function AddUser(data) {
       });
   }
 
-  async function postAduitLog(message) {
+  const generateNewPassword = () => {
+    generatePassword();
+  };
+
+  async function generatePassword() {
+    setIsUpdating(true);
+    setDialogOpen(true);
+    await axios
+      .get('GeneratePassword/GeneratePassword')
+      .then((res) => {
+        console.log(res.data);
+        clearErrors('cpwd');
+        setValue('cpwd', res.data);
+        setIsUpdating(false);
+        setMessage('Password Generated');
+        setSnackOpen(true);
+        setDialogOpen(false);
+      })
+      .catch((err) => {
+        console.log(err);
+        setMessage('Failed to Generate password');
+        setSeverity('error');
+        setIsUpdating(false);
+        setSnackOpen(true);
+      });
+  }
+
+  async function postAduitLog(message, count) {
     const postData = {
       UserId: 0,
       AuditCategoryMasterId: 3,
@@ -598,7 +681,10 @@ function AddUser(data) {
           console.log(res);
           setDialogOpen(false);
           setIsUpdating(false);
-          window.location.reload();
+          if (count == 0) {
+            window.location.reload();
+          } else {
+          }
         } else {
           setIsUpdating(false);
           setDialogOpen(false);
@@ -836,7 +922,6 @@ function AddUser(data) {
           ) : (
             ''
           )}
-
           <Grid item xs={3}>
             <Controller
               name="fname"
@@ -908,6 +993,62 @@ function AddUser(data) {
               )}
             />
           </Grid>
+          {buttonStatus === 'Submit' ? (
+            <Grid item xs={3}>
+              <Controller
+                name="cpwd"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    sx={{ width: '38ch' }}
+                    required
+                    {...field}
+                    id="cpwd"
+                    type={showPassword1 ? 'text' : 'password'}
+                    label="Password"
+                    variant="filled"
+                    {...register('cpwd')}
+                    error={errors.cpwd ? true : false}
+                    helperText={errors.cpwd?.message}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label="toggle password visibility"
+                            onClick={handleClickShowPassword1}
+                            edge="end"
+                          >
+                            {showPassword1 ? (
+                              <VisibilityIcon />
+                            ) : (
+                              <VisibilityOffIcon />
+                            )}
+                          </IconButton>
+                        </InputAdornment>
+                      )
+                    }}
+                  />
+                )}
+              />
+              <Link
+                variant="h6"
+                color="primary"
+                onClick={generateNewPassword}
+                sx={{
+                  cursor: 'pointer',
+                  float: 'right',
+                  paddingRight: '18px',
+                  fontSize: '15px !important',
+                  textDecoration: 'underline'
+                }}
+              >
+                {' '}
+                Generate Password
+              </Link>
+            </Grid>
+          ) : (
+            ''
+          )}
           <Grid item xs={3}>
             <Controller
               name="mobNo"
@@ -1015,7 +1156,6 @@ function AddUser(data) {
               )}
             />
           </Grid>
-
           <Grid item xs={3}>
             <Controller
               name="startIp"
@@ -1062,23 +1202,6 @@ function AddUser(data) {
             </Link>
           </Typography>
         </Box>
-        {buttonStatus === 'Submit' ? (
-          <Grid container>
-            <Grid item xs={3} style={{ paddingLeft: '12px' }}>
-              <Snackbar
-                open={passopen}
-                onClose={handleClose}
-                message="Default Password: ETATest@123#"
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'right'
-                }}
-              />
-            </Grid>
-          </Grid>
-        ) : (
-          ''
-        )}
         <Grid container>
           <Grid item xs={3}>
             <Button

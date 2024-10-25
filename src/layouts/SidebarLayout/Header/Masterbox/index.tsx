@@ -136,6 +136,40 @@ function MasterBox() {
           </ListItem>
         </List>
         <Divider />
+        <Divider sx={{ mb: 0 }} />
+        <List sx={{ p: 0 }} component="nav">
+          <ListItem
+            button
+            component={Link}
+            href="/components/domain"
+            onClick={handleClose}
+          >
+            <ListItemText primary="Domain" />
+          </ListItem>
+        </List>
+        <Divider />
+        <Divider sx={{ mb: 0 }} />
+        <List sx={{ p: 0 }} component="nav">
+          <ListItem
+            button
+            component={Link}
+            href="/components/color"
+            onClick={handleClose}
+          >
+            <ListItemText primary="Color" />
+          </ListItem>
+        </List>
+        <Divider sx={{ mb: 0 }} />
+        <List sx={{ p: 0 }} component="nav">
+          <ListItem
+            button
+            component={Link}
+            href="/components/graphState"
+            onClick={handleClose}
+          >
+            <ListItemText primary="Graph State" />
+          </ListItem>
+        </List>
       </Popover>
     </>
   );

@@ -1,5 +1,4 @@
 import { useRef, useEffect, useState } from 'react';
-import { useMsal } from '@azure/msal-react';
 import Link from 'next/link';
 import {
   Avatar,
@@ -59,8 +58,7 @@ const UserBoxDescription = styled(Typography)(
 );
 
 function HeaderUserbox() {
-  const msal = useMsal();
-  const [isOpen, setOpen] = useState<boolean>(false);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
   const [uname, setUsername] = useState('');
   const [roleName, setRoleName] = useState('');
   const [permission, setPermission] = useState([]);
@@ -82,16 +80,16 @@ function HeaderUserbox() {
   const ref = useRef<any>(null);
 
   const handleOpen = (): void => {
-    setOpen(true);
+    setIsOpen(true);
   };
 
   const handleClose = (): void => {
-    setOpen(false);
+    setIsOpen(false);
   };
 
-  const logout = (): void => {
-    msal.instance.logoutPopup({ mainWindowRedirectUri: '/' });
-    setOpen(false);
+  const signOut = (): void => {
+    localStorage.clear();
+    window.location.replace('/');
   };
 
   return (
@@ -212,7 +210,7 @@ function HeaderUserbox() {
         <Box sx={{ m: 1 }}>
           <Button
             fullWidth
-            onClick={logout}
+            onClick={signOut}
             style={{
               padding: '10px 10px'
             }}

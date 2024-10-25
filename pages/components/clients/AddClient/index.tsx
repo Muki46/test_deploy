@@ -114,6 +114,9 @@ function AddClient(data, colorData) {
   const [files, setFiles] = useState([]);
   const [catgValue, setCatgValue] = useState([]);
   const [dropen, setDrOpen] = useState(false);
+  const [domainOpeningData, setDomainOpeningData] = useState([]);
+  const [savedValue, setSavedValue] = useState([]);
+  const [domainValue, setDomainValue] = useState([]);
   const [reportColorsUpdate, setReportColorsUpdate] = useState({
     BgColor: {
       r: '226',
@@ -213,6 +216,10 @@ function AddClient(data, colorData) {
         .required('Report Name is required'),
 
       EndoDnaRadio: Yup.array().required('Template selection is required'),
+      domain: Yup.array()
+        .min(1, 'At least one Domain is required')
+        .required('Domain  is required'),
+      status: Yup.string().notRequired(),
       pemail: Yup.string().notRequired(),
       tzone: Yup.string().notRequired(),
       mobNo: Yup.string()
@@ -248,6 +255,7 @@ function AddClient(data, colorData) {
       pemail: '',
       pphone: '',
       mobNo: '',
+      domain: [],
       catValue: [],
       EndoDnaRadio: [],
       tzone: 'PDT',
@@ -259,6 +267,35 @@ function AddClient(data, colorData) {
   const onSubmit = (data) => {
     setIsUpdating(true);
     setDialogOpen(true);
+    const domainData = [];
+    console.log(domainValue);
+    if (domainValue.length > 0) {
+      for (var i = 0; i < domainValue.length; i++) {
+        domainData.push({
+          domain_master_id: domainValue[i].domain_master_id,
+          domain_client_mapping_id: 0
+        });
+      }
+    }
+
+    const domainUpdateData = [];
+    console.log(savedValue);
+    console.log(domainValue);
+    const a3 = domainValue.map((t1) => ({
+      ...t1,
+      ...savedValue.find((t2) => t2.domain_master_id === t1.domain_master_id)
+    }));
+    console.log(a3);
+    if (domainValue.length > 0) {
+      for (var i = 0; i < a3.length; i++) {
+        domainUpdateData.push({
+          domain_master_id: a3[i].domain_master_id,
+          domain_client_mapping_id: a3[i].domain_client_mapping_id == undefined ? 0 :a3[i].domain_client_mapping_id 
+        });
+      }
+    }
+    console.log(domainUpdateData);
+
     console.log(endoDNADesignTemplate);
     console.log(endoDNADesignTemplate);
     const clientReportTemplaterelations = [];
@@ -293,6 +330,30 @@ function AddClient(data, colorData) {
       ContactPersonEmail: data.pemail,
       ContactPersonPhone: data.pphone,
       TimeZone: data.tzone,
+      ClientDomainrelations: domainData,
+      ClientReportTemplaterelations: clientReportTemplaterelations,
+      Status: 1,
+      CreatedBy: localStorage.getItem('UserId'),
+      CreatedDate: moment(new Date()).format('MM-DD-YYYY'),
+      ModifiedBy: localStorage.getItem('UserId'),
+      ModifiedDate: moment(new Date()).format('MM-DD-YYYY')
+    };
+
+    var postUpdateData = {
+      ClientId: clientId,
+      ClientName: data.cname,
+      ClientLogo: base64URL === null ? logo : base64URL,
+      Address: data.address,
+      City: city,
+      State: state,
+      Zip: data.zip,
+      Phone: data.mobNo,
+      Fax: data.fax,
+      ContactPersonName: data.pname,
+      ContactPersonEmail: data.pemail,
+      ContactPersonPhone: data.pphone,
+      TimeZone: data.tzone,
+      ClientDomainrelations: domainUpdateData,
       ClientReportTemplaterelations: clientReportTemplaterelations,
       Status: 1,
       CreatedBy: localStorage.getItem('UserId'),
@@ -302,7 +363,7 @@ function AddClient(data, colorData) {
     };
     buttonStatus === 'Submit'
       ? createClient(postData, colorData)
-      : updateClient(postData);
+      : updateClient(postUpdateData);
   };
 
   const onZipChange = (event, value) => {
@@ -452,7 +513,52 @@ function AddClient(data, colorData) {
     getClientOpeningData();
   }, []);
 
-  async function getClientById(clientId, templateArray, reportArray) {
+  const getDomainClientOpeningData = async (templateArray, reportArray) => {
+    setDialogOpen(true);
+    setIsUpdating(true);
+    const id = data.props;
+    await axios
+      .get(`Users/GetDomainClientOpeningData`)
+      .then((res) => {
+        if (res.data.StatusCode == 200) {
+          setDomainOpeningData(res.data.Data.DomainData);
+          if (data.props == 0) {
+            setIsUpdating(false);
+            setButtonStatus('Submit');
+          } else {
+            setButtonStatus('Update');
+            setClientId(data.props);
+            getClientById(
+              id,
+              templateArray,
+              reportArray,
+              res.data.Data.DomainData
+            );
+          }
+          setDialogOpen(false);
+          setIsUpdating(false);
+        } else {
+          setDialogOpen(false);
+          setIsUpdating(false);
+          setSnackOpen(true);
+          setMessage(res.data.StatusMessage);
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+        setDialogOpen(false);
+        setSnackOpen(true);
+        setIsUpdating(false);
+        setMessage('Failed to load ClientDomain opening data');
+      });
+  };
+
+  async function getClientById(
+    clientId,
+    templateArray,
+    reportArray,
+    domainArray
+  ) {
     const rName = localStorage.getItem('RoleName');
     await axios
       .get('Clients/GetClientById/' + clientId)
@@ -497,7 +603,6 @@ function AddClient(data, colorData) {
           });
 
           console.log(categories);
-
           console.log(reportArray);
           const found = reportArray.filter((item) =>
             categories.some(
@@ -517,6 +622,45 @@ function AddClient(data, colorData) {
           }
           setCatgValue(result);
           setValue('catValue', result);
+          setDomainValue(res.data.Data.DomainMasters);
+
+          const selectedArray = [];
+          for (let i = 0; i < res.data.Data.DomainMasters.length; i++) {
+            selectedArray.push({
+              domain_master_id: res.data.Data.DomainMasters[i].domain_master_id,
+              domain_client_mapping_id:
+                res.data.Data.DomainMasters[i].domain_client_mapping_id
+            });
+          }
+          console.log(selectedArray);
+          const unique = selectedArray.filter((obj, index) => {
+            return (
+              index ===
+              selectedArray.findIndex(
+                (o) => obj.domain_master_id === o.domain_master_id
+              )
+            );
+          });
+          console.log(unique);
+          setSavedValue(unique);
+
+          console.log(domainArray);
+          let domainResult = domainArray.filter((item) =>
+            res.data.Data.DomainMasters.some(
+              (itemToBeSelected) =>
+                itemToBeSelected.domain_master_id === item.domain_master_id
+            )
+          );
+          console.log(domainResult);
+          const domainresult = Object.values(
+            domainResult.reduce((r, o) => {
+              r[o.domain_master_id] = o;
+              return r;
+            }, {})
+          );
+          console.log(domainresult);
+          setDomainValue(domainresult);
+          setValue('domain', domainresult);
           setValue('mobNo', res.data.Data.ClientMasters.phone);
           setValue('fax', res.data.Data.ClientMasters.fax);
           setValue('pname', res.data.Data.ClientMasters.contact_person_name);
@@ -547,22 +691,14 @@ function AddClient(data, colorData) {
       .then((res) => {
         if (res.data.StatusCode == 200) {
           setClientReportMaster(res.data.Data.ClientReportMaster);
+          getDomainClientOpeningData(
+            res.data.Data.ClientReportTemplateMapping,
+            res.data.Data.ClientReportMaster
+          );
           setClientReportTemplateData(
             res.data.Data.ClientReportTemplateMapping
           );
           console.log(clientReportTemplateData);
-          if (data.props == 0) {
-            setIsUpdating(false);
-            setButtonStatus('Submit');
-          } else {
-            setButtonStatus('Update');
-            setClientId(data.props);
-            getClientById(
-              data.props,
-              res.data.Data.ClientReportTemplateMapping,
-              res.data.Data.ClientReportMaster
-            );
-          }
         } else {
           setIsUpdating(false);
           setMessage(res.data.StatusMessage);
@@ -679,6 +815,39 @@ function AddClient(data, colorData) {
     setendoDesignId(val);
     console.log(val);
     setEndoTemplateId(val);
+  };
+
+  const onClearDomainChange = () => {
+    setDomainValue([]);
+    setValue('domain', []);
+  };
+
+  const onAddDomainChange = (value) => {
+    console.log(value);
+    console.log('add');
+    clearErrors('domain');
+
+    const uniqueValues = value.filter(
+      (option) =>
+        !domainValue.some(
+          (existingOption) =>
+            existingOption.domain_master_id === option.domain_master_id
+        )
+    );
+    setValue('domain', [...domainValue, ...uniqueValues]);
+    const result = [...domainValue, ...uniqueValues];
+    console.log(result);
+    setDomainValue(result);
+  };
+
+  const onRemoveDomainChange = (value) => {
+    setDomainValue(value);
+    setValue('domain', value);
+    if (value.length > 0) {
+      for (let i = 0; i < value.length; i++) {
+        console.log(value[i].domain_master_id);
+      }
+    }
   };
 
   async function postAduitLog(message) {
@@ -839,7 +1008,7 @@ function AddClient(data, colorData) {
     <Box
       component="form"
       sx={{
-        '& .MuiTextField-root': { m: 1, width: '32ch' }
+        '& .MuiTextField-root': { m: 1 }
       }}
       noValidate
       autoComplete="off"
@@ -859,6 +1028,7 @@ function AddClient(data, colorData) {
               control={control}
               render={({ field }) => (
                 <TextField
+                  sx={{ width: '32ch' }}
                   {...field}
                   required
                   disabled={isClientUser}
@@ -878,6 +1048,7 @@ function AddClient(data, colorData) {
               control={control}
               render={({ field }) => (
                 <TextField
+                  sx={{ width: '32ch' }}
                   {...field}
                   id="filled-multiline-flexible"
                   label="Address"
@@ -905,6 +1076,7 @@ function AddClient(data, colorData) {
               onChange={onZipChange}
               renderInput={(params) => (
                 <TextField
+                  sx={{ width: '32ch' }}
                   {...params}
                   label="Zip"
                   variant="filled"
@@ -935,6 +1107,7 @@ function AddClient(data, colorData) {
               control={control}
               render={({ field }) => (
                 <TextField
+                  sx={{ width: '32ch' }}
                   disabled
                   {...field}
                   id="city"
@@ -951,6 +1124,7 @@ function AddClient(data, colorData) {
               control={control}
               render={({ field }) => (
                 <TextField
+                  sx={{ width: '32ch' }}
                   disabled
                   {...field}
                   id="state"
@@ -968,6 +1142,7 @@ function AddClient(data, colorData) {
               render={({ field }) => (
                 <TextField
                   {...field}
+                  sx={{ width: '32ch' }}
                   id="mobNo"
                   label="Mobile Number"
                   variant="filled"
@@ -985,6 +1160,7 @@ function AddClient(data, colorData) {
               render={({ field }) => (
                 <TextField
                   {...field}
+                  sx={{ width: '32ch' }}
                   id="pname"
                   label="Contact Person Name"
                   variant="filled"
@@ -998,6 +1174,7 @@ function AddClient(data, colorData) {
               control={control}
               render={({ field }) => (
                 <TextField
+                  sx={{ width: '32ch' }}
                   {...field}
                   id="pphone"
                   label="Contact Phone Number"
@@ -1006,12 +1183,13 @@ function AddClient(data, colorData) {
               )}
             />
           </Grid>
-          <Grid item xs={3}>
+          <Grid item xs={2}>
             <Controller
               name="pemail"
               control={control}
               render={({ field }) => (
                 <TextField
+                  sx={{ width: '20ch' }}
                   {...field}
                   id="pemail"
                   label="Contact Email-ID"
@@ -1023,13 +1201,14 @@ function AddClient(data, colorData) {
               )}
             />
           </Grid>
-          <Grid item xs={3}>
+          <Grid item xs={2}>
             <Controller
               name="tzone"
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
+                  sx={{ width: '20ch' }}
                   id="tzone"
                   disabled
                   label="Time Zone"
@@ -1041,18 +1220,57 @@ function AddClient(data, colorData) {
               )}
             />
           </Grid>
-          <Grid item xs={3}>
+          <Grid item xs={2}>
             <Controller
               name="fax"
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
+                  sx={{ width: '20ch' }}
                   id="filled-multiline-Fax"
                   label="Fax"
                   multiline
                   maxRows={2}
                   variant="filled"
+                />
+              )}
+            />
+          </Grid>
+          <Grid item xs={3}>
+            <Controller
+              control={control}
+              name="domain"
+              rules={{ required: true }}
+              render={() => (
+                <Autocomplete
+                  multiple
+                  getOptionLabel={(option) => option.domain_name}
+                  options={domainOpeningData}
+                  value={domainValue}
+                  disabled={isClientUser}
+                  onChange={(event, item, situation) => {
+                    console.log(event);
+                    console.log(item);
+                    if (situation === 'removeOption') {
+                      onRemoveDomainChange(item);
+                    } else if (situation === 'clear') {
+                      onClearDomainChange();
+                    } else {
+                      onAddDomainChange(item);
+                    }
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      sx={{ width: '32ch' }}
+                      {...params}
+                      label="Domain Name"
+                      variant="filled"
+                      error={errors.domain ? true : false}
+                      helperText={errors.domain?.message}
+                      required
+                    />
+                  )}
                 />
               )}
             />
@@ -1082,6 +1300,7 @@ function AddClient(data, colorData) {
                   }}
                   renderInput={(params) => (
                     <TextField
+                      sx={{ width: '32ch' }}
                       {...params}
                       label="Report Name"
                       variant="filled"
@@ -1094,6 +1313,7 @@ function AddClient(data, colorData) {
               )}
             />
           </Grid>
+
           {isMenopause ? (
             <Grid
               item

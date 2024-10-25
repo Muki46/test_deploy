@@ -10,7 +10,15 @@ function DashboardCrypto() {
     setRoleName(localStorage.getItem('RoleName'));
   }, []);
 
-  return <>{roleName == 'Client User' || roleName== 'Admin' ? <Clients /> : <Patients />}</>;
+  return (
+    <>
+      {roleName == 'Client User' || roleName == 'Admin' ? (
+        <Clients />
+      ) : (
+        <Patients />
+      )}
+    </>
+  );
 }
 
 DashboardCrypto.getLayout = (page) => <SidebarLayout>{page}</SidebarLayout>;

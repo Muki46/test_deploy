@@ -8,7 +8,8 @@ import {
   IconButton,
   useTheme,
   Tooltip,
-  Grid
+  Grid,
+  Alert
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import Footer from '@/components/Footer';
@@ -28,8 +29,8 @@ import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
 import Slide from '@mui/material/Slide';
 import { TransitionProps } from '@mui/material/transitions';
-import Alert from '@mui/material/Alert';
 import { useConfirm } from 'material-ui-confirm';
+import LockResetIcon from '@mui/icons-material/LockReset';
 
 const Transition = forwardRef(function Transition(
   props: TransitionProps & {
@@ -189,10 +190,18 @@ function Users() {
   const [severity, setSeverity] = useState('info');
   const [message, setMessage] = useState('');
   const [roleName, setRoleName] = useState('');
+  const [permission, setPermission] = useState([]);
+
+  const goBack = () => {
+    setSnackOpen(false);
+  };
 
   useEffect(() => {
     setLoading(true);
     setRoleName(localStorage.getItem('RoleName'));
+    let retString = localStorage.getItem('Permission');
+    let retArray = JSON.parse(retString);
+    setPermission(retArray);
     console.log(severity);
     setDialogOpen(true);
     getUsersList();
@@ -266,6 +275,39 @@ function Users() {
       .catch((err) => {
         console.log(err);
         setDialogOpen(false);
+        setMessage('Failed To Delete User');
+        setSnackOpen(true);
+        setSeverity('error');
+        window.location.reload();
+      });
+  }
+
+  async function resetPassword(userId) {
+    setLoading(true);
+    setDialogOpen(true);
+    axios
+      .put('GeneratePassword/RestPassword?userId=' + userId)
+      .then((res) => {
+        console.log(res);
+        if (res.data.StatusCode == 200) {
+          setMessage(res.data.Data);
+          setSnackOpen(true);
+          setDialogOpen(false);
+          setLoading(false);
+          setSeverity('success');
+          setTimeout(goBack, 12000);
+        } else {
+          setDialogOpen(false);
+          setLoading(false);
+          setMessage('Password Reset Failure');
+          setSnackOpen(true);
+          setSeverity('error');
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+        setDialogOpen(false);
+        setLoading(false);
         setMessage('Failed To Delete User');
         setSnackOpen(true);
         setSeverity('error');
@@ -492,8 +534,8 @@ function Users() {
         download: false,
         setCellProps: () => ({
           style: {
-            minWidth: '80px',
-            maxWidth: '80px',
+            minWidth: '100px',
+            maxWidth: '100px',
             whiteSpace: 'nowrap',
             position: 'sticky',
             right: 0,
@@ -550,6 +592,29 @@ function Users() {
                     <DeleteTwoToneIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
+              )}
+              {permission.some(
+                (item) => item.permission_name === 'Reset Password'
+              ) ? (
+                <Tooltip placement="top" title="Password Reset" arrow>
+                  <IconButton
+                    onClick={() => {
+                      resetPassword(userData[dataIndex].puser_id);
+                    }}
+                    sx={{
+                      '&:hover': {
+                        background: theme.colors.success.lighter
+                      },
+                      color: theme.palette.secondary.dark
+                    }}
+                    color="inherit"
+                    size="small"
+                  >
+                    <LockResetIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              ) : (
+                ''
               )}
             </>
           );
@@ -721,11 +786,17 @@ function Users() {
           <Grid item xs={12}>
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
               <Snackbar
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 open={snackopen}
                 autoHideDuration={6000}
                 onClose={handleClose}
               >
-                <Alert severity="success" sx={{ width: '100%' }}>
+                <Alert
+                  sx={{
+                    background: '#000 !important',
+                    color: '#fff !important'
+                  }}
+                >
                   {message}
                 </Alert>
               </Snackbar>

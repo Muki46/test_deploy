@@ -40,14 +40,12 @@ function AddColor(data) {
   const [buttonStatus, setButtonStatus] = useState('Submit');
   const [message, setMessage] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
-  const [categoryId, setCategoryId] = useState(0);
-  const [ReportNameData, setReportNameData] = useState([]);
+  const [colorId, setColorId] = useState(0);
 
   const validationSchema = Yup.object().shape({
-    rname: Yup.string().required('Report Name is required'),
-    cname: Yup.string().required('Category Name is required'),
-    Categorydescription: Yup.string().nullable().notRequired(),
-    status:Yup.string().notRequired()
+    Color: Yup.string()
+    .required('Color is required'),
+    status: Yup.string().notRequired()
   });
 
   const {
@@ -58,10 +56,8 @@ function AddColor(data) {
     formState: { errors }
   } = useForm({
     defaultValues: {
-      rname: '',
-      cname: '',
-      Categorydescription: '',
-      status:''
+      Color: '',
+      status: ''
     },
     resolver: yupResolver(validationSchema)
   });
@@ -71,88 +67,88 @@ function AddColor(data) {
     setDialogOpen(true);
     console.log(severity);
     var postData = {
-      ReportMasterId: data.rname,
-      CategoryName: data.cname,
-      CategoryIntroduction: data.Categorydescription,
-      Status: 1,
+      ColorName: data.Color,
       CreatedBy: localStorage.getItem('UserId'),
       CreatedDate: moment(new Date()).format('MM-DD-YYYY'),
       ModifiedBy: localStorage.getItem('UserId'),
       ModifiedDate: moment(new Date()).format('MM-DD-YYYY')
     };
-
     var postUpdateData = {
-      CategoryId: categoryId,
-      ReportMasterId: data.rname,
-      CategoryName: data.cname,
-      Status:data.status,
-      CategoryDescription: data.Categorydescription,
+      ColorId:colorId ,
+      ColorName: data.Color,
+      Status: data.status,
       ModifiedBy: localStorage.getItem('UserId'),
       ModifiedDate: moment(new Date()).format('MM-DD-YYYY')
     };
     buttonStatus === 'Submit'
-      ? createReportCategory(postData)
-      : updateReportCategory(postUpdateData);
+      ? CreateColor(postData)
+      : updateColor(postUpdateData);
   };
 
-  async function createReportCategory(data) {
+  async function CreateColor(data) {
     axios
-      .post('Category/CreateReportCategory', data)
+      .post('Master/CreateColor', data)
       .then((res) => {
         if (res.data.StatusCode == 200) {
           setIsUpdating(false);
-          setMessage('Category Created');
+          setMessage('Color Created');
           setSnackOpen(true);
           setDialogOpen(false);
-          setSeverity('success');
-          postAduitLog(data.CategoryName  + " Category Name has been created successfully")
-        } else {
-          setIsUpdating(false);
-          setMessage(res.data.StatusMessage);
-          setSeverity('error');
-          setSnackOpen(true);
-          setDialogOpen(false);
-          postAduitLog(data.CategoryName  + " Category Name creation failed")
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-        setIsUpdating(false);
-        setMessage('Failed To Create Category');
-        setSnackOpen(true);
-        setSeverity('error');
-        setDialogOpen(false);
-        window.location.reload();
-      });
-  }
-
-  async function updateReportCategory(data) {
-    axios
-      .put('Category/UpdateReportCategory', data)
-      .then((res) => {
-        if (res.data.StatusCode == 200) {
-          setIsUpdating(false);
-          setDialogOpen(false);
-          setMessage('Category Updated');
-          setSnackOpen(true);
           setSeverity('success');
           window.location.reload();
         } else {
           setIsUpdating(false);
+          setMessage(res.data.StatusMessage);
+          setSeverity('error');
+          setSnackOpen(true);
+          setDialogOpen(false);
+          setTimeout(reload, 1000);
+          
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+        setIsUpdating(false);
+        setMessage('Failed To Create Color');
+        setSnackOpen(true);
+        setSeverity('error');
+        setDialogOpen(false);
+        setTimeout(reload, 1000);
+      });
+  }
+
+const reload = () => {
+  window.location.reload();
+}
+
+  async function updateColor(data) {
+    axios
+      .put('Master/UpdateColor', data)
+      .then((res) => {
+        if (res.data.StatusCode == 200) {
+          setIsUpdating(false);
+          setDialogOpen(false);
+          setMessage('Color Updated');
+          setSnackOpen(true);
+          setSeverity('success');
+          setTimeout(reload, 1000);
+        } else {
+          setIsUpdating(false);
           setDialogOpen(false);
           setMessage(res.data.StatusMessage);
           setSeverity('error');
           setSnackOpen(true);
+          setTimeout(reload, 1000);
         }
       })
       .catch((err) => {
         console.log(err);
         setIsUpdating(false);
         setDialogOpen(false);
-        setMessage('Failed To Update Category');
+        setMessage('Failed To Update Color');
         setSnackOpen(true);
         setSeverity('error');
-        window.location.reload();
+        setTimeout(reload, 1000);
       });
   }
 
@@ -169,51 +165,22 @@ function AddColor(data) {
       setButtonStatus('Submit');
     } else {
       setButtonStatus('Update');
-      setCategoryId(data.props);
-      getReportCategoryById(data.props);
+      setColorId(data.props);
+      getColorById(data.props);
     }
-    getCategoryOpeningData();
   }, []);
 
-  async function getCategoryOpeningData() {
-    setIsUpdating(true);
-    setDialogOpen(true);
-    await axios
-      .get('Category/GetCategoryOpeningData')
-      .then((res) => {
-        if (res.data.StatusCode == 200) {
-          setReportNameData(res.data.Data);
-          setIsUpdating(false);
-          setDialogOpen(false);
-        } else {
-          setIsUpdating(false);
-          setDialogOpen(false);
-          setMessage(res.data.StatusMessage);
-          setSeverity('error');
-          setSnackOpen(true);
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-        setIsUpdating(false);
-        setDialogOpen(false);
-        setMessage('Failed to fetch category details');
-        setSeverity('error');
-        setSnackOpen(true);
-      });
-  }
+ 
 
-  async function getReportCategoryById(categoryId) {
+  async function getColorById(colorId) {
     setIsUpdating(true);
     setDialogOpen(true);
     await axios
-      .get('Category/GetReportCategoryById/' + categoryId)
+      .get('Master/getColorById/' + colorId)
       .then((res) => {
         if (res.data.StatusCode == 200) {
-          setValue('rname', res.data.Data.ReportMasterId);
-          setValue('cname', res.data.Data.CategoryName);
-          setValue('Categorydescription', res.data.Data.CategoryIntroduction);
           setValue('status', res.data.Data.Status);
+          setValue('Color' , res.data.Data.ColorName);
           setIsUpdating(false);
           setDialogOpen(false);
         } else {
@@ -228,57 +195,19 @@ function AddColor(data) {
         console.log(err);
         setIsUpdating(false);
         setDialogOpen(false);
-        setMessage('Failed to fetch category details');
+        setMessage('Failed to fetch Color details');
         setSeverity('error');
         setSnackOpen(true);
       });
   }
 
-  async function postAduitLog(message) {
-    const postData = {
-      UserId: 0,
-      AuditCategoryMasterId: 7,
-      AuditDate: moment(new Date())
-        .tz('America/Los_Angeles')
-        .format('MM-DD-YYYY HH:mm'),
-      Activity: message,
-      PatientId: 0,
-      ProviderId: 0,
-      ReportId: 0,
-      ClientId: 0,
-      AuditUserId: localStorage.getItem('UserId'),
-      Status: 1
-    };
-    await axios
-      .post('Users/CreateAuditLog', postData)
-      .then((res) => {
-        if (res.data.StatusCode == 200) {
-          console.log(res);
-          setDialogOpen(false);
-          setIsUpdating(false);
-          window.location.reload();
-        } else {
-          setIsUpdating(false);
-          setDialogOpen(false);
-          setMessage(res.data.StatusMessage);
-          setSnackOpen(true);
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-        setIsUpdating(false);
-        setDialogOpen(false);
-        setSnackOpen(true);
-        setMessage('Failed to Audit');
-      });
-  }
 
 
   return (
     <Box
       component="form"
       sx={{
-        '& .MuiTextField-root': { m: 1, width: '43ch' }
+        '& .MuiTextField-root': { m: 1 ,width:'43ch'}
       }}
       noValidate
       autoComplete="off"
@@ -292,85 +221,20 @@ function AddColor(data) {
         spacing={3}
       >
         <Grid container>
-          <Grid item xs={4}>
-            <FormControl
-              variant="filled"
-              sx={{ marginTop: '8px', width: '43ch', m: 1 }}
-            >
-              <InputLabel required id="demo-simple-select-filled-label">
-                Report Name
-              </InputLabel>
-              <Controller
-                name="rname"
-                control={control}
-                defaultValue=""
-                render={({ field: { onChange, value } }) => (
-                  <Select
-                    required
-                    labelId="demo-simple-select-filled"
-                    {...register('rname')}
-                    id="demo-simple-select"
-                    value={value}
-                    label="Report Name"
-                    onChange={(e) => {
-                      onChange(e);
-                      //   handleClientChange(e);
-                    }}
-                  >
-                    {ReportNameData.map((c, i) => (
-                      <MenuItem key={`c-${i}`} value={c.CategoryId}>
-                        {c.CategoryName}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                )}
-              />
-              {errors.rname && (
-                <p
-                  style={{
-                    color: '#FF1943',
-                    fontSize: '13px',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  {errors.rname.message}
-                </p>
-              )}
-            </FormControl>
-          </Grid>
-          <Grid item xs={4}>
+          <Grid item xs={4} >
             <Controller
-              name="cname"
+              name="Color"
               control={control}
               render={({ field }) => (
                 <TextField
                   required
                   {...field}
-                  id="catValue"
-                  label="Category Name"
+                  id="ColorName"
+                  label="Color Name"
                   variant="filled"
-                  {...register('cname')}
-                  error={errors.cname ? true : false}
-                  helperText={errors.cname?.message}
-                />
-              )}
-            />
-          </Grid>
-          <Grid item xs={4}>
-            <Controller
-              name="Categorydescription"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  rows={4}
-                  multiline
-                  {...field}
-                  id="Category-Description"
-                  label="Category-Description"
-                  {...register('Categorydescription')}
-                  error={errors.Categorydescription ? true : false}
-                  helperText={errors.Categorydescription?.message}
-                  variant="filled"
+                  {...register('Color')}
+                  error={errors.Color ? true : false}
+                  helperText={errors.Color?.message}
                 />
               )}
             />
@@ -379,10 +243,10 @@ function AddColor(data) {
             <Grid item xs={3}>
               <FormControl
                 variant="filled"
-                sx={{ marginTop: '8px', width: '32ch', m: 1 }}
+                sx={{ marginTop: '8px', width: '43ch', m: 1 }}
               >
                 <InputLabel id="demo-simple-select-filled-label">
-                  status
+                  Status
                 </InputLabel>
                 <Controller
                   name="status"
@@ -418,7 +282,6 @@ function AddColor(data) {
           ) : (
             ''
           )}
-
         </Grid>
         <Grid container>
           <Button

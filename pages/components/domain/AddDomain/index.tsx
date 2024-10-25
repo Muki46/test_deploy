@@ -1,7 +1,6 @@
 import Button from '@mui/material/Button';
 import SendIcon from '@mui/icons-material/Send';
 import {
-  Autocomplete,
   FormControl,
   Grid,
   InputLabel,
@@ -33,7 +32,7 @@ const Transition = forwardRef(function Transition(
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-function AddSubCategory(data) {
+function AddDomain(data) {
   const [axios] = useAxios();
   const [snackopen, setSnackOpen] = useState(false);
   const [dopen, setDialogOpen] = useState(false);
@@ -41,17 +40,15 @@ function AddSubCategory(data) {
   const [buttonStatus, setButtonStatus] = useState('Submit');
   const [message, setMessage] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
-  const [subCategoryId, setSubCategoryId] = useState(0);
-  const [categoryData, setCategoryData] = useState([]);
-  const [categoryId, setCategoryId] = useState(0);
-  const [categoryValue, setCategoryValue] = useState<any>(null);
+  const [domainId, setDomainId] = useState(0);
 
   const validationSchema = Yup.object().shape({
-    cname: Yup.array()
-      .min(1, 'Atleast one Category is required')
-      .required('Category is required'),
-    scname: Yup.string().required('Sub Category Name is required'),
-    SubCategorydescription: Yup.string().nullable().notRequired(),
+    domain: Yup.string()
+    .required('Domain is required')
+    .matches(
+      /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:[a-zA-Z]{2,})$/,
+      'Invalid domain format'
+    ),
     status: Yup.string().notRequired()
   });
 
@@ -59,14 +56,11 @@ function AddSubCategory(data) {
     control,
     register,
     setValue,
-    clearErrors,
     handleSubmit,
     formState: { errors }
   } = useForm({
     defaultValues: {
-      cname: [],
-      scname: '',
-      SubCategorydescription: '',
+      domain: '',
       status: ''
     },
     resolver: yupResolver(validationSchema)
@@ -77,58 +71,48 @@ function AddSubCategory(data) {
     setDialogOpen(true);
     console.log(severity);
     var postData = {
-      CategoryId: categoryId,
-      SubCategoryName: data.scname,
-      SubCategoryIntroduction: data.SubCategorydescription,
-      Status: 1,
+      DomainName: data.domain,
       CreatedBy: localStorage.getItem('UserId'),
       CreatedDate: moment(new Date()).format('MM-DD-YYYY'),
       ModifiedBy: localStorage.getItem('UserId'),
       ModifiedDate: moment(new Date()).format('MM-DD-YYYY')
     };
     var postUpdateData = {
-      SubCategoryId: subCategoryId,
-      CategoryId: categoryId,
-      SubCategoryName: data.scname,
-      SubCategoryIntroduction: data.SubCategorydescription,
+      DomainMasterId:domainId ,
+      DomainName: data.domain,
       Status: data.status,
       ModifiedBy: localStorage.getItem('UserId'),
       ModifiedDate: moment(new Date()).format('MM-DD-YYYY')
     };
     buttonStatus === 'Submit'
-      ? createSubCategory(postData)
-      : updateCategory(postUpdateData);
+      ? CreateDomain(postData)
+      : updateDomain(postUpdateData);
   };
 
-  async function createSubCategory(data) {
+  async function CreateDomain(data) {
     axios
-      .post('Category/CreateSubCategory', data)
+      .post('Users/CreateDomain', data)
       .then((res) => {
         if (res.data.StatusCode == 200) {
           setIsUpdating(false);
-          setMessage(' Sub category Created');
+          setMessage('Domain Created');
           setSnackOpen(true);
           setDialogOpen(false);
           setSeverity('success');
-          postAduitLog(
-            data.SubCategoryName +
-              ' Subcategory Name has been created successfully'
-          );
+          postAduitLog(data.DomainName + ' domain Name has been created successfully');
         } else {
           setIsUpdating(false);
           setMessage(res.data.StatusMessage);
           setSeverity('error');
           setSnackOpen(true);
           setDialogOpen(false);
-          postAduitLog(
-            data.SubCategoryName + ' Subcategory Name creation failed'
-          );
+          postAduitLog(data.DomainName + ' domain Name creation failed');
         }
       })
       .catch((err) => {
         console.log(err);
         setIsUpdating(false);
-        setMessage('Failed To Create Sub category');
+        setMessage('Failed To Create Domain');
         setSnackOpen(true);
         setSeverity('error');
         setDialogOpen(false);
@@ -136,14 +120,14 @@ function AddSubCategory(data) {
       });
   }
 
-  async function updateCategory(data) {
+  async function updateDomain(data) {
     axios
-      .put('Category/UpdateSubCategory', data)
+      .put('Users/UpdateDomain', data)
       .then((res) => {
         if (res.data.StatusCode == 200) {
           setIsUpdating(false);
           setDialogOpen(false);
-          setMessage('Sub category Updated');
+          setMessage('Domain Updated');
           setSnackOpen(true);
           setSeverity('success');
           window.location.reload();
@@ -159,7 +143,7 @@ function AddSubCategory(data) {
         console.log(err);
         setIsUpdating(false);
         setDialogOpen(false);
-        setMessage('Failed To Update Sub category');
+        setMessage('Failed To Update Domain');
         setSnackOpen(true);
         setSeverity('error');
         window.location.reload();
@@ -177,84 +161,24 @@ function AddSubCategory(data) {
     console.log(data.props);
     if (data.props == 0) {
       setButtonStatus('Submit');
-      getSubCategoryOpeningData(data.props);
     } else {
       setButtonStatus('Update');
-      setSubCategoryId(data.props);
-      getSubCategoryById(data.props);
+      setDomainId(data.props);
+      getDomainById(data.props);
     }
   }, []);
 
-  async function getSubCategoryOpeningData(id) {
-    setIsUpdating(true);
-    setDialogOpen(true);
-    await axios
-      .get('Category/GetSubCategoryOpeningData')
-      .then((res) => {
-        if (res.data.StatusCode == 200) {
-          setCategoryData(res.data.Data);
-          if (id !== 0) {
-            const val = res.data.Data.filter((obj) => {
-              return obj.CategoryId == id;
-            });
-            console.log(val);
-            setValue('cname', val);
-            setCategoryValue(val[0]);
-          }
-          setIsUpdating(false);
-          setDialogOpen(false);
-        } else {
-          setIsUpdating(false);
-          setDialogOpen(false);
-          setMessage(res.data.StatusMessage);
-          setSeverity('error');
-          setSnackOpen(true);
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-        setIsUpdating(false);
-        setDialogOpen(false);
-        setMessage('Failed to fetch Sub category details');
-        setSeverity('error');
-        setSnackOpen(true);
-      });
-  }
-  const onCategoryChange = (e, value, reason) => {
-    console.log(e);
-    console.log(value);
-    clearErrors('cname');
-    if (value != null) {
-      const newArray = [];
-      newArray.push(value);
-      console.log(newArray);
-      setValue('cname', newArray);
-      setCategoryId(value.CategoryId);
-      setCategoryValue(value);
-    }
-    if (reason === 'clear') {
-      setValue('cname', []);
-      setCategoryId(0);
-      setCategoryValue(null);
-    }
-  };
+ 
 
-  async function getSubCategoryById(subCategoryId) {
+  async function getDomainById(domainId) {
     setIsUpdating(true);
     setDialogOpen(true);
     await axios
-      .get('Category/GetSubCategoryById/' + subCategoryId)
+      .get('Users/GetDomainById/' + domainId)
       .then((res) => {
         if (res.data.StatusCode == 200) {
-          setValue('cname', res.data.Data.CategoryId);
-          setCategoryId(res.data.Data.CategoryId);
-          getSubCategoryOpeningData(res.data.Data.CategoryId);
-          setValue('scname', res.data.Data.SubCategoryName);
-          setValue(
-            'SubCategorydescription',
-            res.data.Data.SubCategoryIntroduction
-          );
           setValue('status', res.data.Data.Status);
+          setValue('domain' , res.data.Data.DomainName);
           setIsUpdating(false);
           setDialogOpen(false);
         } else {
@@ -269,11 +193,12 @@ function AddSubCategory(data) {
         console.log(err);
         setIsUpdating(false);
         setDialogOpen(false);
-        setMessage('Failed to fetch Sub category details');
+        setMessage('Failed to fetch Domain details');
         setSeverity('error');
         setSnackOpen(true);
       });
   }
+
 
   async function postAduitLog(message) {
     const postData = {
@@ -314,11 +239,13 @@ function AddSubCategory(data) {
       });
   }
 
+
+
   return (
     <Box
       component="form"
       sx={{
-        '& .MuiTextField-root': { m: 1, width: '43ch' }
+        '& .MuiTextField-root': { m: 1 ,width:'43ch'}
       }}
       noValidate
       autoComplete="off"
@@ -332,77 +259,29 @@ function AddSubCategory(data) {
         spacing={3}
       >
         <Grid container>
-          <Grid item xs={4}>
+          <Grid item xs={4} >
             <Controller
-              control={control}
-              name="cname"
-              rules={{ required: true }}
-              render={() => (
-                <Autocomplete
-                  sx={{ display: 'inline-flex', width: '55ch' }}
-                  options={categoryData}
-                  getOptionLabel={(option) => option.CategoryName}
-                  value={categoryValue}
-                  isOptionEqualToValue={(option, value) =>
-                    option.value === value.value
-                  }
-                  onChange={onCategoryChange}
-                  renderInput={(params) => (
-                    <TextField
-                      required
-                      {...params}
-                      label="Category Name"
-                      variant="filled"
-                      error={errors.cname ? true : false}
-                      helperText={errors.cname?.message}
-                    />
-                  )}
-                />
-              )}
-            />
-          </Grid>
-          <Grid item xs={4}>
-            <Controller
-              name="scname"
+              name="domain"
               control={control}
               render={({ field }) => (
                 <TextField
                   required
                   {...field}
-                  id="catValue"
-                  label="Sub Category Name "
+                  id="domainName"
+                  label="Domain Name"
                   variant="filled"
-                  {...register('scname')}
-                  error={errors.scname ? true : false}
-                  helperText={errors.scname?.message}
-                />
-              )}
-            />
-          </Grid>
-          <Grid item xs={4}>
-            <Controller
-              name="SubCategorydescription"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  rows={4}
-                  multiline
-                  {...field}
-                  id="SubCategory-Description"
-                  label="Sub Category-Description"
-                  {...register('SubCategorydescription')}
-                  error={errors.SubCategorydescription ? true : false}
-                  helperText={errors.SubCategorydescription?.message}
-                  variant="filled"
+                  {...register('domain')}
+                  error={errors.domain ? true : false}
+                  helperText={errors.domain?.message}
                 />
               )}
             />
           </Grid>
           {buttonStatus == 'Update' ? (
-            <Grid item xs={4}>
+            <Grid item xs={3}>
               <FormControl
                 variant="filled"
-                sx={{ marginTop: '8px', width: '32ch', m: 1 }}
+                sx={{ marginTop: '8px', width: '43ch', m: 1 }}
               >
                 <InputLabel id="demo-simple-select-filled-label">
                   Status
@@ -499,4 +378,4 @@ function AddSubCategory(data) {
   );
 }
 
-export default AddSubCategory;
+export default AddDomain;

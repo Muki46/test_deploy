@@ -14,21 +14,21 @@ import {
 import { styled } from '@mui/material/styles';
 import ExpandMoreTwoToneIcon from '@mui/icons-material/ExpandMoreTwoTone';
 
-const ConfigurationBoxButton = styled(Button)(
+const MasterBoxButton = styled(Button)(
   ({ theme }) => `
         padding-left: ${theme.spacing(1)};
         padding-right: ${theme.spacing(1)};
 `
 );
 
-const ConfigurationBoxText = styled(Box)(
+const MasterBoxText = styled(Box)(
   ({ theme }) => `
         text-align: left;
         padding-left: ${theme.spacing(1)};
 `
 );
 
-const ConfigurationBoxLabel = styled(Typography)(
+const MasterBoxLabel = styled(Typography)(
   ({ theme }) => `
         font-weight: ${theme.typography.fontWeightBold};
         color: ${theme.palette.secondary.main};
@@ -36,10 +36,15 @@ const ConfigurationBoxLabel = styled(Typography)(
 `
 );
 
-function ConfigurationBox() {
+function ClientBox() {
   const [isOpen, setOpen] = useState<boolean>(false);
+  const [permission, setPermission] = useState([]);
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    let retString = localStorage.getItem('Permission');
+    let retArray = JSON.parse(retString);
+    setPermission(retArray);
+  }, []);
 
   const ref = useRef<any>(null);
 
@@ -53,18 +58,16 @@ function ConfigurationBox() {
 
   return (
     <>
-      <ConfigurationBoxButton color="secondary" ref={ref} onClick={handleOpen}>
+      <MasterBoxButton color="secondary" ref={ref} onClick={handleOpen}>
         <Hidden mdDown>
-          <ConfigurationBoxText>
-            <ConfigurationBoxLabel variant="body1">
-              Configuration
-            </ConfigurationBoxLabel>
-          </ConfigurationBoxText>
+          <MasterBoxText>
+            <MasterBoxLabel variant="body1">Clients</MasterBoxLabel>
+          </MasterBoxText>
         </Hidden>
         <Hidden smDown>
           <ExpandMoreTwoToneIcon sx={{ ml: 1 }} />
         </Hidden>
-      </ConfigurationBoxButton>
+      </MasterBoxButton>
       <Popover
         anchorEl={ref.current}
         onClose={handleClose}
@@ -79,32 +82,45 @@ function ConfigurationBox() {
         }}
       >
         <Divider sx={{ mb: 0 }} />
-        <List sx={{ p: 0 }} component="nav">
-          <ListItem
-            button
-            component={Link}
-            href="/components/reportConfiguration"
-            onClick={handleClose}
-          >
-            <ListItemText primary="Genotype Configuration" />
-          </ListItem>
-        </List>
-        <Divider />
+        {permission.some((item) => item.permission_name === 'Client') ? (
+          <List sx={{ p: 0 }} component="nav">
+            <ListItem
+              classes={{ root: 'MuiListItem-indicators' }}
+              button
+              onClick={handleClose}
+              component={Link}
+              href="/components/clients"
+            >
+              <ListItemText
+                primaryTypographyProps={{ noWrap: true }}
+                primary="Clients List"
+              />
+            </ListItem>
+          </List>
+        ) : (
+          ''
+        )}
         <Divider sx={{ mb: 0 }} />
+        {permission.some((item) => item.permission_name === 'Client') ? (    
         <List sx={{ p: 0 }} component="nav">
           <ListItem
+            classes={{ root: 'MuiListItem-indicators' }}
             button
             component={Link}
-            href="/components/genotypeConfiguration"
             onClick={handleClose}
+            href="/components/clientDomainMapping"
           >
-            <ListItemText primary="Condition Configuration" />
+            <ListItemText
+              primaryTypographyProps={{ noWrap: true }}
+              primary="Client-Domain Mapping"
+            />
           </ListItem>
         </List>
+        ):('')}
         <Divider />
       </Popover>
     </>
   );
 }
 
-export default ConfigurationBox;
+export default ClientBox;
