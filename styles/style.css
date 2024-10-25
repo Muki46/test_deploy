@@ -1,0 +1,70 @@
+@import url('https://fonts.googleapis.com/css?family=Nunito');
+
+.MuiButtonBase-root {
+  font-weight: 700 !important;
+  font-family: 'Nunito', 'Helvetica', 'Arial', sans-serif !important;
+  font-size: 15px !important;
+}
+
+.MuiTableCell-root {
+  font-family: 'Nunito', 'Helvetica', 'Arial', sans-serif !important;
+  font-size: 15px !important;
+}
+
+.MuiTypography-root {
+  font-family: 'Nunito', 'Helvetica', 'Arial', sans-serif !important;
+  font-size: 17px !important;
+  color: #3d5388 !important;
+  font-weight: 600 !important;
+  letter-spacing: 1px;
+}
+
+.heightFix {
+  height: 120px;
+}
+
+.MuiTypography-body2 {
+  font-family: 'Nunito', 'Helvetica', 'Arial', sans-serif !important;
+  font-size: 13px !important;
+  color: #333 !important;
+}
+
+.MuiOutlinedInput-root {
+  padding: 4px !important;
+  background: #fff;
+}
+
+.MuiTypography-h3 {
+  font-family: 'Nunito', 'Helvetica', 'Arial', sans-serif !important;
+  font-size: 23px !important;
+  color: #3d5388 !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px;
+}
+
+.MuiTypography-subtitle2 {
+  font-family: 'Nunito', 'Helvetica', 'Arial', sans-serif !important;
+  font-size: 17px !important;
+  color: #333 !important;
+  letter-spacing: 1px;
+}
+
+body {
+  background-color: #f2f5f9 !important;
+  font-family: 'Nunito', 'Helvetica', 'Arial', sans-serif !important;
+}
+
+.MuiCheckbox-root {
+  background: #fff !important;
+  width: 48px !important;
+  left: -5% !important;
+}
+
+.MuiTabPanel-root {
+  padding: 2px !important;
+}
+
+html {
+  overflow: -moz-scrollbars-vertical;
+  overflow-y: auto;
+}
